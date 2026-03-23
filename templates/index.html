@@ -197,6 +197,90 @@
     .edit-form .btn-row button { padding: 0.45rem 1rem; border-radius: 6px; border: none; font-family: inherit; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
     .edit-form .save-btn { background: var(--accent); color: var(--bg); }
     .edit-form .cancel-btn { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+    .edit-form .payouts-block {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.7rem;
+    }
+    .edit-form .payout-row {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem;
+      margin-bottom: 0.55rem;
+      background: rgba(0,0,0,0.2);
+    }
+    .edit-form .payout-row:last-child { margin-bottom: 0; }
+    .edit-form .payout-row.collapsed .payout-editor { display: none; }
+    .edit-form .payout-row:not(.collapsed) .payout-summary { display: none; }
+    .edit-form .payout-summary-line {
+      font-size: 0.84rem;
+      color: var(--text);
+      line-height: 1.35;
+      margin-bottom: 0.45rem;
+    }
+    .edit-form .payout-summary-line .muted { color: var(--text-muted); }
+    .edit-form .payout-summary-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.7rem;
+    }
+    .edit-form .payout-summary-actions .left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .edit-form .payout-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.55rem;
+    }
+    .edit-form .payout-grid .full { grid-column: 1 / -1; }
+    .edit-form .payout-grid .row-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .edit-form .payout-grid .hide-chk {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .edit-form .payout-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 0.3rem 0.55rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .edit-form .payout-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .edit-form .payout-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+    .edit-form .add-payout-btn {
+      background: transparent;
+      color: var(--accent);
+      border: 1px dashed var(--accent);
+      border-radius: 6px;
+      padding: 0.45rem 0.6rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 0.4rem;
+    }
+    .edit-form .payout-empty {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 0.55rem 0.4rem;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+    }
     .job-card.new-job { border-style: dashed; border-color: var(--accent); background: rgba(0, 212, 170, 0.05); }
     .job-card.new-job .edit-form { display: block; }
     .job-card.new-job .info, .job-card.new-job .remove-btn { display: none; }
@@ -249,6 +333,35 @@
       padding: 0.2rem;
     }
     .counter-widget .config-btn:hover { color: var(--accent); }
+    .counter-widget .expand-btn, .counter-widget .timer-btn {
+      position: absolute;
+      top: 0.5rem;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 0.2rem;
+    }
+    .counter-widget .expand-btn { right: 2.1rem; }
+    .counter-widget .timer-btn { right: 3.7rem; }
+    .counter-widget .expand-btn:hover, .counter-widget .timer-btn:hover { color: var(--accent); }
+    .counter-widget .live-badge {
+      position: absolute;
+      top: 0.55rem;
+      left: 0.6rem;
+      font-size: 0.65rem;
+      padding: 0.16rem 0.42rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.2);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .counter-widget .live-badge.active { color: var(--accent); border-color: rgba(0, 212, 170, 0.45); }
+    .counter-widget .live-badge.paused { color: #f59e0b; border-color: rgba(245, 158, 11, 0.45); }
     .counter-widget.configuring .value, .counter-widget.configuring .label, .counter-widget.configuring .label-tax { display: none; }
     .counter-widget .config-form { display: none; }
     .counter-widget.configuring .config-form { display: flex; flex: 1; flex-direction: column; min-height: 0; }
@@ -341,6 +454,107 @@
     .counter-widget.new-counter .value { display: none; }
     .counter-widget.new-counter .label, .counter-widget.new-counter .label-tax { display: none; }
     .counter-widget.new-counter .config-form { display: block; }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 20;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-overlay.open { display: flex; }
+    #zoomModal { z-index: 20; }
+    #timerModal { z-index: 30; }
+    .modal-card {
+      width: min(780px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 25px 70px rgba(0,0,0,0.45);
+      padding: 1rem;
+    }
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.8rem;
+    }
+    .modal-head h3 { margin: 0; font-size: 1rem; }
+    .modal-close {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 0.3rem 0.5rem;
+      cursor: pointer;
+    }
+    .timer-live {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.8rem;
+      margin-bottom: 0.8rem;
+      background: rgba(0,0,0,0.2);
+    }
+    .timer-live .name {
+      width: 100%;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      padding: 0.55rem 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .timer-live .time { font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; margin-bottom: 0.35rem; }
+    .timer-live .money { color: var(--accent); margin-bottom: 0.6rem; }
+    .timer-live .row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .modal-btn {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      border-radius: 6px;
+      padding: 0.4rem 0.75rem;
+      cursor: pointer;
+    }
+    .modal-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .modal-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+    .zoom-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(2rem, 7vw, 4rem);
+      color: var(--accent);
+      text-align: center;
+      margin: 0.6rem 0 0.2rem;
+    }
+    .zoom-sub { text-align: center; color: var(--text-muted); margin-bottom: 0.9rem; }
+    .measure-tools {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.7rem;
+    }
+    .measure-tools select {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.35rem 0.5rem;
+      font-size: 0.82rem;
+    }
+    .measure-list { display: flex; flex-direction: column; gap: 0.6rem; }
+    .measure-item {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem;
+      background: rgba(0,0,0,0.2);
+      font-size: 0.85rem;
+    }
+    .measure-item .line { margin-bottom: 0.25rem; }
+    .measure-item .actions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.45rem; }
   </style>
 </head>
 <body>
@@ -363,10 +577,36 @@
     <div class="counters-grid" id="countersGrid"></div>
   </section>
 
+  <div class="modal-overlay" id="timerModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Секундомер виджета</h3>
+        <button class="modal-close" id="timerModalClose">Закрыть</button>
+      </div>
+      <div id="timerModalBody"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="zoomModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="zoomModalTitle">Виджет крупно</h3>
+        <button class="modal-close" id="zoomModalClose">Закрыть</button>
+      </div>
+      <div id="zoomModalBody"></div>
+    </div>
+  </div>
+
   <script>
     const API_BATCH = '/api/earned_batch';
     const SCHEDULES = [{ id: '5x2', label: '5×2' }, { id: '2x2', label: '2×2' }, { id: '3x1', label: '3×1' }, { id: '1x1', label: '1×1' }, { id: '6x1', label: '6×1' }, { id: '24x7', label: '24×7' }];
     const RATE_UNITS = [{ id: 'hour', label: 'в час' }, { id: 'day', label: 'в день' }, { id: 'month', label: 'в месяц' }];
+    const PAYOUT_KINDS = [
+      { id: 'bonus', label: 'Премия' },
+      { id: 'piecework', label: 'Сдельная' },
+      { id: 'vacation', label: 'Отпускные' },
+      { id: 'other', label: 'Другая' },
+    ];
     const TAX_OPTIONS = [
       { id: 'none', label: 'Уже после вычета' },
       { id: '13', label: '13%' }, { id: '4', label: '4%' }, { id: '6', label: '6%' }, { id: '15', label: '15%' },
@@ -384,6 +624,7 @@
       name: '', startedAt: '', schedule: '5x2',
       workFrom: '09:00', workTo: '17:00', lunchFrom: '13:00', lunchTo: '14:00',
       lunchEnabled: true, daySchedules: null,
+      payouts: [],
       rate: 0, rateUnit: 'month', taxType: 'none',
     });
 
@@ -391,13 +632,35 @@
     jobs = jobs.map(j => {
       const m = { ...defaultJob(), ...j };
       if (m.salary && !m.rate) m.rate = m.salary;
+      m.payouts = Array.isArray(m.payouts) ? m.payouts.map(p => ({
+        title: p?.title || '',
+        kind: p?.kind || 'other',
+        amount: Number(p?.amount || 0),
+        taxType: p?.taxType || 'none',
+        schedule: p?.schedule || '',
+        fromDate: p?.fromDate || '',
+        toDate: p?.toDate || '',
+        hidden: !!p?.hidden,
+      })) : [];
       return m;
     });
 
     let counters = JSON.parse(localStorage.getItem('zp_counters') || '[]');
-    counters = counters.map(c => ({ jobIds: [], taxDisplay: 'net', period: 'month', roundRubles: true, ...c }));
+    counters = counters.map(c => ({
+      jobIds: [],
+      taxDisplay: 'net',
+      period: 'month',
+      roundRubles: true,
+      measurements: [],
+      activeTimer: null,
+      ...c
+    }));
 
     let jobStatuses = {};
+    let openTimerCounterIdx = null;
+    let openZoomCounterIdx = null;
+    let measurementSort = 'newest';
+    let measurementFilter = 'all';
 
     function formatRubles(n, roundToRubles = false) {
       if (roundToRubles) return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Math.floor(n)) + ' ₽';
@@ -412,10 +675,91 @@
       } catch { return s; }
     }
 
+    function formatDateTime(s) {
+      if (!s) return '—';
+      const d = new Date(s);
+      return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('ru-RU');
+    }
+
+    function formatDuration(ms) {
+      const sec = Math.max(0, Math.floor(ms / 1000));
+      const h = String(Math.floor(sec / 3600)).padStart(2, '0');
+      const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+      const s = String(sec % 60).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
     function formatRate(job) {
       const u = RATE_UNITS.find(x => x.id === job.rateUnit)?.label || job.rateUnit;
       const t = job.taxType === 'none' ? '' : ` (${job.taxType}%)`;
       return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(job.rate) + ' ₽/' + u + t;
+    }
+
+    function escapeAttr(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function payoutLabel(kind) {
+      return PAYOUT_KINDS.find(k => k.id === kind)?.label || 'Выплата';
+    }
+
+    function scheduleLabel(id) {
+      if (!id) return 'Наследовать от работы';
+      return SCHEDULES.find(s => s.id === id)?.label || id;
+    }
+
+    function payoutSummaryHtml(p) {
+      const amount = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(p.amount || 0));
+      const tax = p.taxType === 'none' ? 'без доп. вычета' : `налог ${p.taxType}%`;
+      const hidden = p.hidden ? ' · скрыта' : '';
+      return `<strong>${escapeAttr(payoutLabel(p.kind))}</strong>${p.title ? ` — ${escapeAttr(p.title)}` : ''} · ${amount} ₽ · ${escapeAttr(tax)} · ${escapeAttr(scheduleLabel(p.schedule))} · ${escapeAttr(p.fromDate || '—')} — ${escapeAttr(p.toDate || '—')}<span class="muted">${hidden}</span>`;
+    }
+
+    function payoutRowHtml(payout = {}, collapsed = true) {
+      const p = {
+        title: payout.title || '',
+        kind: payout.kind || 'other',
+        amount: Number(payout.amount || 0),
+        taxType: payout.taxType || 'none',
+        schedule: payout.schedule || '',
+        fromDate: payout.fromDate || '',
+        toDate: payout.toDate || '',
+        hidden: !!payout.hidden,
+      };
+      return `
+        <div class="payout-row ${collapsed ? 'collapsed' : ''}">
+          <input type="hidden" name="payout_data" value='${escapeAttr(JSON.stringify(p))}'>
+          <div class="payout-summary">
+            <div class="payout-summary-line">${payoutSummaryHtml(p)}</div>
+            <div class="payout-summary-actions">
+              <div class="left">
+                <label class="hide-chk"><input type="checkbox" class="payout-hidden-toggle" ${p.hidden ? 'checked' : ''}> Скрыть</label>
+              </div>
+              <div>
+                <button type="button" class="payout-btn edit-payout-btn">Редактировать</button>
+                <button type="button" class="payout-btn danger del-payout-btn">Удалить</button>
+              </div>
+            </div>
+          </div>
+          <div class="payout-editor">
+            <div class="payout-grid">
+              <div class="field"><label>Тип выплаты</label><select name="payout_kind">${PAYOUT_KINDS.map(k => `<option value="${k.id}" ${p.kind === k.id ? 'selected' : ''}>${k.label}</option>`).join('')}</select></div>
+              <div class="field"><label>Название</label><input type="text" name="payout_title" value="${escapeAttr(p.title)}" placeholder="Например, KPI март"></div>
+              <div class="field"><label>Сумма</label><input type="number" name="payout_amount" min="0" step="0.01" value="${p.amount || ''}" placeholder="0"></div>
+              <div class="field"><label>Налог</label><select name="payout_tax">${TAX_OPTIONS.map(t => `<option value="${t.id}" ${p.taxType === t.id ? 'selected' : ''}>${t.label}</option>`).join('')}</select></div>
+              <div class="field"><label>График выплаты</label><select name="payout_schedule"><option value="" ${!p.schedule ? 'selected' : ''}>Наследовать от работы</option>${SCHEDULES.map(s => `<option value="${s.id}" ${p.schedule === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}</select></div>
+              <div class="field"><label>Период выплаты</label><div class="field-row"><input type="date" name="payout_from" value="${p.fromDate}"><span>–</span><input type="date" name="payout_to" value="${p.toDate}"></div></div>
+              <div class="field full row-actions">
+                <label class="hide-chk"><input type="checkbox" name="payout_hidden" ${p.hidden ? 'checked' : ''}> Скрыть выплату</label>
+                <div>
+                  <button type="button" class="payout-btn save-payout-btn">Сохранить выплату</button>
+                  <button type="button" class="payout-btn danger del-payout-btn">Удалить</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     async function fetchEarnedBatch(jobsList) {
@@ -433,6 +777,7 @@
       const lunchEnabled = job.lunchEnabled !== false;
       const useDaySchedules = !!(job.daySchedules && Object.keys(job.daySchedules).length);
       const ds = job.daySchedules || {};
+      const payouts = Array.isArray(job.payouts) ? job.payouts : [];
       const dayRows = WEEKDAYS.map(wd => {
         const d = ds[String(wd)] || ds[wd] || {};
         return `<div class="day-row"><span class="day-label">${WEEKDAY_LABELS[wd]}</span>
@@ -442,10 +787,11 @@
           ${lunchEnabled ? `<input type="time" name="day_${wd}_lunchFrom" value="${d.lunchFrom || job.lunchFrom || '13:00'}"><span>–</span><input type="time" name="day_${wd}_lunchTo" value="${d.lunchTo || job.lunchTo || '14:00'}">` : ''}
         </div>`;
       }).join('');
+      const payoutRows = payouts.length ? payouts.map(p => payoutRowHtml(p, true)).join('') : '<div class="payout-empty">Допвыплаты не добавлены</div>';
       return `
         <form class="edit-form" data-index="${index}">
           <div class="form-grid">
-            <div class="field full"><label>Название</label><input type="text" name="name" value="${(job.name || '').replace(/"/g, '&quot;')}" placeholder="Название работы"></div>
+            <div class="field full"><label>Название</label><input type="text" name="name" value="${escapeAttr(job.name || '')}" placeholder="Название работы"></div>
             <div class="field"><label>Дата устройства</label><input type="date" name="startedAt" value="${job.startedAt || ''}"></div>
             <div class="field"><label>График</label><select name="schedule">${SCHEDULES.map(s => `<option value="${s.id}" ${job.schedule === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}</select></div>
             <div class="field"><label>Время работы</label><div class="field-row"><input type="time" name="workFrom" value="${job.workFrom || '09:00'}"><span>–</span><input type="time" name="workTo" value="${job.workTo || '17:00'}"></div></div>
@@ -454,10 +800,124 @@
             <div class="field full day-schedules-block" style="display:${useDaySchedules ? 'block' : 'none'}"><div class="day-schedules">${dayRows}</div></div>
             <div class="field"><label>Ставка</label><div class="field-row"><input type="number" class="rate-input" name="rate" value="${job.rate || ''}" min="0" step="0.01" placeholder="0"><select name="rateUnit">${RATE_UNITS.map(u => `<option value="${u.id}" ${job.rateUnit === u.id ? 'selected' : ''}>${u.label}</option>`).join('')}</select></div></div>
             <div class="field"><label>Налог</label><select name="taxType">${TAX_OPTIONS.map(t => `<option value="${t.id}" ${job.taxType === t.id ? 'selected' : ''}>${t.label}</option>`).join('')}</select></div>
+            <div class="field full">
+              <label>Допвыплаты</label>
+              <div class="payouts-block">
+                <div class="payouts-rows">${payoutRows}</div>
+                <button type="button" class="add-payout-btn">+ Добавить выплату</button>
+              </div>
+            </div>
           </div>
           <div class="btn-row"><button type="submit" class="save-btn">${saveLabel}</button><button type="button" class="cancel-btn">Отмена</button></div>
         </form>
       `;
+    }
+
+    function readPayoutEditor(row) {
+      return {
+        title: row.querySelector('[name=payout_title]')?.value?.trim() || '',
+        kind: row.querySelector('[name=payout_kind]')?.value || 'other',
+        amount: parseFloat(String(row.querySelector('[name=payout_amount]')?.value || '0').replace(',', '.')) || 0,
+        taxType: row.querySelector('[name=payout_tax]')?.value || 'none',
+        schedule: row.querySelector('[name=payout_schedule]')?.value || '',
+        fromDate: row.querySelector('[name=payout_from]')?.value || '',
+        toDate: row.querySelector('[name=payout_to]')?.value || '',
+        hidden: !!row.querySelector('[name=payout_hidden]')?.checked,
+      };
+    }
+
+    function syncPayoutRow(row, payout) {
+      const hidden = row.querySelector('[name=payout_data]');
+      if (hidden) hidden.value = JSON.stringify(payout);
+      const line = row.querySelector('.payout-summary-line');
+      if (line) line.innerHTML = payoutSummaryHtml(payout);
+      const hideToggle = row.querySelector('.payout-hidden-toggle');
+      if (hideToggle) hideToggle.checked = !!payout.hidden;
+    }
+
+    function readPayoutRow(row) {
+      const hidden = row.querySelector('[name=payout_data]');
+      if (hidden?.value) {
+        try {
+          return JSON.parse(hidden.value);
+        } catch (_) {}
+      }
+      return readPayoutEditor(row);
+    }
+
+    function bindJobFormUi(form) {
+      if (!form || form._togglesSet) return;
+      const lunchChk = form.querySelector('[name=lunchEnabled]');
+      const useDaysChk = form.querySelector('[name=useDaySchedules]');
+      const dayBlock = form.querySelector('.day-schedules-block');
+      const payoutsRows = form.querySelector('.payouts-rows');
+      const addPayoutBtn = form.querySelector('.add-payout-btn');
+
+      const toggleLunch = () => {
+        form.querySelectorAll('input[name=lunchFrom],input[name=lunchTo],input[name*=lunchFrom],input[name*=lunchTo]').forEach(i => {
+          i.disabled = !lunchChk?.checked;
+        });
+      };
+      const toggleDays = () => {
+        if (dayBlock) dayBlock.style.display = useDaysChk?.checked ? 'block' : 'none';
+      };
+      const ensureEmptyState = () => {
+        const hasRows = form.querySelectorAll('.payout-row').length > 0;
+        if (!hasRows && payoutsRows) payoutsRows.innerHTML = '<div class="payout-empty">Допвыплаты не добавлены</div>';
+      };
+
+      lunchChk?.addEventListener('change', toggleLunch);
+      useDaysChk?.addEventListener('change', toggleDays);
+      addPayoutBtn?.addEventListener('click', () => {
+        if (!payoutsRows) return;
+        const empty = payoutsRows.querySelector('.payout-empty');
+        if (empty) empty.remove();
+        payoutsRows.insertAdjacentHTML('beforeend', payoutRowHtml({}, false));
+      });
+      payoutsRows?.addEventListener('click', (e) => {
+        const row = e.target.closest('.payout-row');
+        if (!row) return;
+        if (e.target.closest('.del-payout-btn')) {
+          row.remove();
+          ensureEmptyState();
+          return;
+        }
+        if (e.target.closest('.edit-payout-btn')) {
+          const data = readPayoutRow(row);
+          row.querySelector('[name=payout_kind]').value = data.kind || 'other';
+          row.querySelector('[name=payout_title]').value = data.title || '';
+          row.querySelector('[name=payout_amount]').value = data.amount || '';
+          row.querySelector('[name=payout_tax]').value = data.taxType || 'none';
+          row.querySelector('[name=payout_schedule]').value = data.schedule || '';
+          row.querySelector('[name=payout_from]').value = data.fromDate || '';
+          row.querySelector('[name=payout_to]').value = data.toDate || '';
+          row.querySelector('[name=payout_hidden]').checked = !!data.hidden;
+          row.classList.remove('collapsed');
+          return;
+        }
+        if (e.target.closest('.save-payout-btn')) {
+          const data = readPayoutEditor(row);
+          if (!(data.amount > 0) || !data.fromDate || !data.toDate) {
+            alert('Для сохранения выплаты заполните сумму и период (с/по).');
+            return;
+          }
+          syncPayoutRow(row, data);
+          row.classList.add('collapsed');
+          return;
+        }
+      });
+      payoutsRows?.addEventListener('change', (e) => {
+        const row = e.target.closest('.payout-row');
+        if (!row) return;
+        if (e.target.classList.contains('payout-hidden-toggle')) {
+          const data = readPayoutRow(row);
+          data.hidden = !!e.target.checked;
+          syncPayoutRow(row, data);
+        }
+      });
+      toggleLunch();
+      toggleDays();
+      form._togglesSet = true;
     }
 
     async function updateJobStatuses() {
@@ -499,6 +959,7 @@
               <span>📋 ${SCHEDULES.find(s => s.id === job.schedule)?.label || job.schedule}</span>
               <span>🕐 ${job.schedule === '24x7' ? '24×7 (ежесекундно)' : `${job.workFrom || '09:00'}–${job.workTo || '17:00'}${job.lunchEnabled !== false ? ` (обед ${job.lunchFrom || '13:00'}–${job.lunchTo || '14:00'})` : ' (без обеда)'}`}</span>
               <span>💰 ${formatRate(job)}</span>
+              <span>➕ Выплаты: ${Array.isArray(job.payouts) ? job.payouts.filter(p => !p.hidden).length : 0}${Array.isArray(job.payouts) && job.payouts.some(p => p.hidden) ? ` (скрыто ${job.payouts.filter(p => p.hidden).length})` : ''}</span>
             </div>
           </div>
           <div class="edit-form">${buildJobEditForm(job, i, false)}</div>
@@ -516,8 +977,12 @@
         div.dataset.index = i;
         const periodLabel = PERIODS.find(p => p.id === cfg.period)?.label || cfg.period;
         const jobsLabel = cfg.jobIds.length === 0 ? '—' : cfg.jobIds.map(id => jobs[id]?.name || `Работа ${id + 1}`).join(', ');
+        const badge = cfg.activeTimer ? `<span class="live-badge ${cfg.activeTimer.paused ? 'paused' : 'active'}">${cfg.activeTimer.paused ? 'Пауза' : 'Таймер'}</span>` : '';
         div.innerHTML = `
+          ${badge}
           <button class="config-btn" data-config="${i}" title="Настроить">⚙</button>
+          <button class="expand-btn" data-expand="${i}" title="Открыть крупно">⛶</button>
+          <button class="timer-btn" data-timer="${i}" title="Секундомер">▶</button>
           <div class="value" data-value="${i}">0 ₽</div>
           <div class="label">${periodLabel} · ${jobsLabel}</div>
           <div class="label-tax">${cfg.taxDisplay === 'gross' ? 'До вычетов' : 'После вычетов'}</div>
@@ -551,6 +1016,307 @@
         const value = results.reduce((s, r) => s + (r[key] || 0), 0);
         const isWorking = results.some(r => r.is_working_now);
         return { value, isWorking };
+      });
+    }
+
+    function ensureTimerState(cfg) {
+      if (!cfg.measurements) cfg.measurements = [];
+      if (!cfg.activeTimer) return;
+      cfg.activeTimer.elapsedMs = Number(cfg.activeTimer.elapsedMs || 0);
+      cfg.activeTimer.elapsedMoney = Number(cfg.activeTimer.elapsedMoney || 0);
+      if (cfg.activeTimer.pausedAt) cfg.activeTimer.paused = true;
+    }
+
+    function activeTimerTotalMs(t) {
+      if (!t) return 0;
+      if (t.paused) return Number(t.elapsedMs || 0);
+      return Number(t.elapsedMs || 0) + Math.max(0, Date.now() - Number(t.lastRunStartedAt || Date.now()));
+    }
+
+    async function startTimer(counterIdx, title, resumeFrom = null) {
+      const cfg = counters[counterIdx];
+      if (!cfg) return;
+      ensureTimerState(cfg);
+      const { value } = await getCounterValue(cfg);
+      if (resumeFrom) {
+        cfg.activeTimer = {
+          id: resumeFrom.id,
+          title: title || resumeFrom.title || `Замер ${new Date().toLocaleTimeString('ru-RU')}`,
+          startedAt: resumeFrom.startedAt || new Date().toISOString(),
+          elapsedMs: Number(resumeFrom.totalMs || 0),
+          elapsedMoney: Number(resumeFrom.earned || 0),
+          baseValueAtResume: value,
+          lastRunStartedAt: Date.now(),
+          paused: false,
+        };
+      } else {
+        cfg.activeTimer = {
+          id: 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          title: title || `Замер ${new Date().toLocaleTimeString('ru-RU')}`,
+          startedAt: new Date().toISOString(),
+          elapsedMs: 0,
+          elapsedMoney: 0,
+          baseValueAtResume: value,
+          lastRunStartedAt: Date.now(),
+          paused: false,
+        };
+      }
+      saveAndRender();
+      openTimerModal(counterIdx);
+    }
+
+    async function pauseTimer(counterIdx) {
+      const cfg = counters[counterIdx];
+      if (!cfg?.activeTimer || cfg.activeTimer.paused) return;
+      const timer = cfg.activeTimer;
+      const { value } = await getCounterValue(cfg);
+      timer.elapsedMs = activeTimerTotalMs(timer);
+      timer.elapsedMoney = Number(timer.elapsedMoney || 0) + (value - Number(timer.baseValueAtResume || 0));
+      timer.paused = true;
+      timer.pausedAt = new Date().toISOString();
+      saveAndRender();
+      if (openTimerCounterIdx === counterIdx) renderTimerModal();
+      if (openZoomCounterIdx === counterIdx) renderZoomModal();
+    }
+
+    async function resumeTimer(counterIdx) {
+      const cfg = counters[counterIdx];
+      if (!cfg?.activeTimer || !cfg.activeTimer.paused) return;
+      const { value } = await getCounterValue(cfg);
+      cfg.activeTimer.baseValueAtResume = value;
+      cfg.activeTimer.lastRunStartedAt = Date.now();
+      cfg.activeTimer.paused = false;
+      cfg.activeTimer.pausedAt = null;
+      saveAndRender();
+      if (openTimerCounterIdx === counterIdx) renderTimerModal();
+      if (openZoomCounterIdx === counterIdx) renderZoomModal();
+    }
+
+    async function stopTimer(counterIdx) {
+      const cfg = counters[counterIdx];
+      if (!cfg?.activeTimer) return;
+      if (!cfg.activeTimer.paused) await pauseTimer(counterIdx);
+      const t = cfg.activeTimer;
+      const rec = {
+        id: t.id,
+        title: t.title || 'Замер',
+        startedAt: t.startedAt,
+        endedAt: new Date().toISOString(),
+        totalMs: Number(t.elapsedMs || 0),
+        earned: Number(t.elapsedMoney || 0),
+      };
+      cfg.measurements = [rec, ...(cfg.measurements || [])];
+      cfg.activeTimer = null;
+      saveAndRender();
+      if (openTimerCounterIdx === counterIdx) renderTimerModal();
+      if (openZoomCounterIdx === counterIdx) renderZoomModal();
+    }
+
+    function getLiveTimerMoney(cfg, currentValue) {
+      const t = cfg?.activeTimer;
+      if (!t) return 0;
+      if (t.paused) return Number(t.elapsedMoney || 0);
+      return Number(t.elapsedMoney || 0) + (currentValue - Number(t.baseValueAtResume || 0));
+    }
+
+    function openTimerModal(counterIdx) {
+      openTimerCounterIdx = counterIdx;
+      const modal = document.getElementById('timerModal');
+      modal.classList.add('open');
+      renderTimerModal();
+    }
+
+    function closeTimerModal() {
+      openTimerCounterIdx = null;
+      document.getElementById('timerModal').classList.remove('open');
+    }
+
+    function openZoomModal(counterIdx) {
+      openZoomCounterIdx = counterIdx;
+      document.getElementById('zoomModal').classList.add('open');
+      const cfg = counters[counterIdx];
+      const periodLabel = PERIODS.find(p => p.id === cfg?.period)?.label || cfg?.period || '—';
+      const jobsLabel = (cfg?.jobIds || []).length === 0 ? '—' : cfg.jobIds.map(id => jobs[id]?.name || `Работа ${id + 1}`).join(', ');
+      const title = `${jobsLabel} · ${periodLabel}`;
+      const titleEl = document.getElementById('zoomModalTitle');
+      if (titleEl) titleEl.textContent = title;
+      renderZoomModal();
+    }
+
+    function closeZoomModal() {
+      openZoomCounterIdx = null;
+      document.getElementById('zoomModal').classList.remove('open');
+    }
+
+    async function renderTimerModal() {
+      const idx = openTimerCounterIdx;
+      const body = document.getElementById('timerModalBody');
+      if (idx === null || !counters[idx]) { body.innerHTML = ''; return; }
+      const cfg = counters[idx];
+      ensureTimerState(cfg);
+      const { value } = await getCounterValue(cfg);
+      const t = cfg.activeTimer;
+      if (!t) {
+        body.innerHTML = `
+          <div class="timer-live">
+            <input class="name" id="newTimerName" placeholder="Название замера (кофе, созвон...)">
+            <div class="row"><button class="modal-btn" id="newTimerStart">▶ Запустить секундомер</button></div>
+          </div>
+        `;
+        document.getElementById('newTimerStart')?.addEventListener('click', () => {
+          const title = document.getElementById('newTimerName')?.value?.trim() || '';
+          startTimer(idx, title);
+        });
+        return;
+      }
+      const totalMs = activeTimerTotalMs(t);
+      const earned = getLiveTimerMoney(cfg, value);
+      body.innerHTML = `
+        <div class="timer-live">
+          <input class="name" id="timerTitleInput" value="${escapeAttr(t.title || '')}" placeholder="Название">
+          <div class="time" id="timerLiveTime">${formatDuration(totalMs)}</div>
+          <div class="money" id="timerLiveMoney">${formatRubles(earned, false)}</div>
+          <div class="row">
+            ${t.paused ? '<button class="modal-btn" id="timerPlayBtn">▶ Плей</button>' : '<button class="modal-btn" id="timerPauseBtn">⏸ Пауза</button>'}
+            <button class="modal-btn danger" id="timerStopBtn">■ Стоп и сохранить</button>
+          </div>
+        </div>
+      `;
+      document.getElementById('timerTitleInput')?.addEventListener('input', (e) => {
+        if (cfg.activeTimer) {
+          cfg.activeTimer.title = e.target.value || '';
+        }
+      });
+      document.getElementById('timerPauseBtn')?.addEventListener('click', () => pauseTimer(idx));
+      document.getElementById('timerPlayBtn')?.addEventListener('click', () => resumeTimer(idx));
+      document.getElementById('timerStopBtn')?.addEventListener('click', () => stopTimer(idx));
+    }
+
+    async function updateTimerModalLive() {
+      const idx = openTimerCounterIdx;
+      if (idx === null || !counters[idx]) return;
+      const cfg = counters[idx];
+      if (!cfg.activeTimer) return;
+      const input = document.getElementById('timerTitleInput');
+      if (input && cfg.activeTimer.title !== input.value) cfg.activeTimer.title = input.value || '';
+      const { value } = await getCounterValue(cfg);
+      const timeEl = document.getElementById('timerLiveTime');
+      const moneyEl = document.getElementById('timerLiveMoney');
+      if (timeEl) timeEl.textContent = formatDuration(activeTimerTotalMs(cfg.activeTimer));
+      if (moneyEl) moneyEl.textContent = formatRubles(getLiveTimerMoney(cfg, value), false);
+    }
+
+    function measurementItemHtml(m) {
+      return `
+        <div class="measure-item" data-mid="${escapeAttr(m.id)}">
+          <div class="line"><strong>${escapeAttr(m.title || 'Замер')}</strong></div>
+          <div class="line">🕒 ${formatDateTime(m.startedAt)} — ${formatDateTime(m.endedAt)}</div>
+          <div class="line">⏱ ${formatDuration(m.totalMs || 0)} · 💰 ${formatRubles(Number(m.earned || 0), false)}</div>
+          <div class="actions">
+            <button class="modal-btn edit-measure-btn">Имя</button>
+            <button class="modal-btn continue-measure-btn">Продолжить</button>
+            <button class="modal-btn danger del-measure-btn">Удалить</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function isMeasurementInProgress(m) {
+      const end = m?.endedAt ? new Date(m.endedAt).getTime() : NaN;
+      return Number.isFinite(end) && (Date.now() - end) < (3 * 60 * 60 * 1000);
+    }
+
+    function getDisplayedMeasurements(cfg) {
+      let items = [...(cfg.measurements || [])];
+      if (measurementFilter === 'recent') items = items.filter(isMeasurementInProgress);
+      if (measurementFilter === 'long') items = items.filter(m => Number(m.totalMs || 0) >= 30 * 60 * 1000);
+      if (measurementSort === 'oldest') items.sort((a, b) => new Date(a.startedAt) - new Date(b.startedAt));
+      if (measurementSort === 'money') items.sort((a, b) => Number(b.earned || 0) - Number(a.earned || 0));
+      if (measurementSort === 'duration') items.sort((a, b) => Number(b.totalMs || 0) - Number(a.totalMs || 0));
+      if (measurementSort === 'newest') items.sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
+      return items;
+    }
+
+    async function renderZoomModal() {
+      const idx = openZoomCounterIdx;
+      const body = document.getElementById('zoomModalBody');
+      if (idx === null || !counters[idx]) { body.innerHTML = ''; return; }
+      const cfg = counters[idx];
+      ensureTimerState(cfg);
+      const { value } = await getCounterValue(cfg);
+      const periodLabel = PERIODS.find(p => p.id === cfg.period)?.label || cfg.period;
+      const displayed = getDisplayedMeasurements(cfg);
+      const history = displayed.map(measurementItemHtml).join('') || '<div class="measure-item">Пока нет замеров</div>';
+      const active = cfg.activeTimer ? `
+        <div class="measure-item">
+          <div class="line"><strong>Текущий замер: ${escapeAttr(cfg.activeTimer.title || 'Замер')}</strong></div>
+          <div class="line">⏱ ${formatDuration(activeTimerTotalMs(cfg.activeTimer))} · 💰 ${formatRubles(getLiveTimerMoney(cfg, value), false)}</div>
+          <div class="actions">
+            ${cfg.activeTimer.paused ? '<button class="modal-btn" id="zoomActivePlay">▶ Плей</button>' : '<button class="modal-btn" id="zoomActivePause">⏸ Пауза</button>'}
+            <button class="modal-btn danger" id="zoomActiveStop">■ Стоп</button>
+          </div>
+        </div>` : '';
+      body.innerHTML = `
+        <div class="zoom-value">${formatRubles(value, cfg.roundRubles !== false)}</div>
+        <div class="zoom-sub">${periodLabel} · ${cfg.taxDisplay === 'gross' ? 'До вычета' : 'После вычета'}</div>
+        <div class="row" style="display:flex;justify-content:center;margin-bottom:0.8rem;">
+          <button class="modal-btn" id="zoomStartTimer">▶ Добавить секундомер</button>
+        </div>
+        <div class="measure-tools">
+          <select id="measureSort">
+            <option value="newest" ${measurementSort === 'newest' ? 'selected' : ''}>Сначала новые</option>
+            <option value="oldest" ${measurementSort === 'oldest' ? 'selected' : ''}>Сначала старые</option>
+            <option value="money" ${measurementSort === 'money' ? 'selected' : ''}>По сумме</option>
+            <option value="duration" ${measurementSort === 'duration' ? 'selected' : ''}>По длительности</option>
+          </select>
+          <select id="measureFilter">
+            <option value="all" ${measurementFilter === 'all' ? 'selected' : ''}>Все</option>
+            <option value="recent" ${measurementFilter === 'recent' ? 'selected' : ''}>За 3 часа</option>
+            <option value="long" ${measurementFilter === 'long' ? 'selected' : ''}>Дольше 30 мин</option>
+          </select>
+        </div>
+        ${active}
+        <div class="measure-list">${history}</div>
+      `;
+      document.getElementById('zoomStartTimer')?.addEventListener('click', () => openTimerModal(idx));
+      document.getElementById('measureSort')?.addEventListener('change', (e) => {
+        measurementSort = e.target.value || 'newest';
+        renderZoomModal();
+      });
+      document.getElementById('measureFilter')?.addEventListener('change', (e) => {
+        measurementFilter = e.target.value || 'all';
+        renderZoomModal();
+      });
+      document.getElementById('zoomActivePause')?.addEventListener('click', () => pauseTimer(idx));
+      document.getElementById('zoomActivePlay')?.addEventListener('click', () => resumeTimer(idx));
+      document.getElementById('zoomActiveStop')?.addEventListener('click', () => stopTimer(idx));
+      body.querySelectorAll('.measure-item').forEach(item => {
+        const mid = item.dataset.mid;
+        if (!mid) return;
+        item.querySelector('.edit-measure-btn')?.addEventListener('click', () => {
+          const rec = (cfg.measurements || []).find(x => x.id === mid);
+          if (!rec) return;
+          const name = prompt('Новое название замера', rec.title || '');
+          if (name === null) return;
+          rec.title = name.trim() || rec.title || 'Замер';
+          saveAndRender();
+          renderZoomModal();
+        });
+        item.querySelector('.continue-measure-btn')?.addEventListener('click', () => {
+          const rec = (cfg.measurements || []).find(x => x.id === mid);
+          if (!rec) return;
+          cfg.measurements = (cfg.measurements || []).filter(x => x.id !== mid);
+          startTimer(idx, rec.title || 'Замер', rec);
+          renderZoomModal();
+        });
+        item.querySelector('.del-measure-btn')?.addEventListener('click', () => {
+          const rec = (cfg.measurements || []).find(x => x.id === mid);
+          const title = rec?.title || 'замер';
+          if (!confirm(`Удалить "${title}"?`)) return;
+          cfg.measurements = (cfg.measurements || []).filter(x => x.id !== mid);
+          saveAndRender();
+          renderZoomModal();
+        });
       });
     }
 
@@ -592,6 +1358,8 @@
           if (el) el.classList.toggle('paused', !isWorking);
         });
       });
+      if (openTimerCounterIdx !== null) updateTimerModalLive();
+      if (openZoomCounterIdx !== null) renderZoomModal();
     }
 
     document.getElementById('jobsList').addEventListener('click', (e) => {
@@ -603,16 +1371,7 @@
           card.classList.add('editing');
           card.querySelector('.cancel-btn').onclick = () => { card.classList.remove('editing'); };
           const form = card.querySelector('.edit-form');
-          const setupFormToggles = () => {
-            const lunchChk = form.querySelector('[name=lunchEnabled]');
-            const useDaysChk = form.querySelector('[name=useDaySchedules]');
-            const dayBlock = form.querySelector('.day-schedules-block');
-            const toggleLunch = () => { form.querySelectorAll('input[name=lunchFrom],input[name=lunchTo],input[name*=lunchFrom],input[name*=lunchTo]').forEach(i => { i.disabled = !lunchChk.checked; }); };
-            const toggleDays = () => { if (dayBlock) dayBlock.style.display = useDaysChk.checked ? 'block' : 'none'; };
-            lunchChk?.addEventListener('change', toggleLunch);
-            useDaysChk?.addEventListener('change', toggleDays);
-          };
-          if (form && !form._togglesSet) { setupFormToggles(); form._togglesSet = true; }
+          bindJobFormUi(form);
         }
       }
       if (removeIdx !== undefined) {
@@ -647,6 +1406,17 @@
           }
         });
       }
+      const payoutRows = Array.from(form.querySelectorAll('.payout-row'));
+      const payouts = payoutRows.map(row => {
+        if (!row.classList.contains('collapsed')) {
+          const maybe = readPayoutEditor(row);
+          if (maybe.amount > 0 && maybe.fromDate && maybe.toDate) {
+            syncPayoutRow(row, maybe);
+            row.classList.add('collapsed');
+          }
+        }
+        return readPayoutRow(row);
+      }).filter(p => p.amount > 0 && p.fromDate && p.toDate);
       const job = {
         name: fd.get('name') || '',
         startedAt: fd.get('startedAt') || '',
@@ -657,6 +1427,7 @@
         lunchTo: fd.get('lunchTo') || '14:00',
         lunchEnabled: form.querySelector('[name=lunchEnabled]')?.checked !== false,
         daySchedules,
+        payouts,
         rate: parseFloat(String(fd.get('rate')).replace(',', '.')) || 0,
         rateUnit: fd.get('rateUnit') || 'month',
         taxType: fd.get('taxType') || 'none',
@@ -670,15 +1441,20 @@
 
     document.getElementById('countersGrid').addEventListener('click', (e) => {
       const cfgIdx = e.target.dataset?.config;
+      const timerIdx = e.target.dataset?.timer;
+      const expandIdx = e.target.dataset?.expand;
       const saveIdx = e.target.dataset?.save;
       const delIdx = e.target.dataset?.del;
       if (cfgIdx !== undefined) {
         const w = document.querySelector(`.counter-widget[data-index="${cfgIdx}"]`);
         if (w) w.classList.toggle('configuring');
       }
+      if (timerIdx !== undefined) openTimerModal(+timerIdx);
+      if (expandIdx !== undefined) openZoomModal(+expandIdx);
       if (saveIdx !== undefined) {
         const w = document.querySelector(`.counter-widget[data-index="${saveIdx}"]`);
         if (!w) return;
+        const prev = counters[saveIdx] || {};
         const jobsContainer = w.querySelector(`.jobs-list[data-jobs="${saveIdx}"]`);
         const taxSelect = w.querySelector(`select[data-tax="${saveIdx}"]`);
         const periodSelect = w.querySelector(`select[data-period="${saveIdx}"]`);
@@ -688,6 +1464,8 @@
           taxDisplay: taxSelect?.value || 'net',
           period: periodSelect?.value || 'month',
           roundRubles: roundChk?.checked ?? true,
+          measurements: Array.isArray(prev.measurements) ? prev.measurements : [],
+          activeTimer: prev.activeTimer || null,
         };
         delete counters[saveIdx]._new;
         w.classList.remove('configuring', 'new-counter');
@@ -717,23 +1495,21 @@
           saveAndRender();
         };
         const form = card.querySelector('.edit-form');
-        if (form && !form._togglesSet) {
-          const lunchChk = form.querySelector('[name=lunchEnabled]');
-          const useDaysChk = form.querySelector('[name=useDaySchedules]');
-          const dayBlock = form.querySelector('.day-schedules-block');
-          lunchChk?.addEventListener('change', () => form.querySelectorAll('input[name=lunchFrom],input[name=lunchTo],input[name*=lunchFrom],input[name*=lunchTo]').forEach(i => { i.disabled = !lunchChk.checked; }));
-          useDaysChk?.addEventListener('change', () => { if (dayBlock) dayBlock.style.display = useDaysChk.checked ? 'block' : 'none'; });
-          form._togglesSet = true;
-        }
+        bindJobFormUi(form);
       }
     };
 
     document.getElementById('addCounterBtn').onclick = () => {
-      counters.push({ jobIds: [], taxDisplay: 'net', period: 'month', roundRubles: true, _new: true });
+      counters.push({ jobIds: [], taxDisplay: 'net', period: 'month', roundRubles: true, measurements: [], activeTimer: null, _new: true });
       saveAndRender();
       const w = document.querySelector(`.counter-widget[data-index="${counters.length - 1}"]`);
       if (w) w.classList.add('configuring');
     };
+
+    document.getElementById('timerModalClose').onclick = closeTimerModal;
+    document.getElementById('zoomModalClose').onclick = closeZoomModal;
+    document.getElementById('timerModal').addEventListener('click', (e) => { if (e.target.id === 'timerModal') closeTimerModal(); });
+    document.getElementById('zoomModal').addEventListener('click', (e) => { if (e.target.id === 'zoomModal') closeZoomModal(); });
 
     function updateDateTime() {
       const el = document.getElementById('currentDatetime');
