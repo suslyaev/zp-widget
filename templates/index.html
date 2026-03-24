@@ -845,6 +845,29 @@
       return readPayoutEditor(row);
     }
 
+    function collectPayoutsFromForm(form) {
+      return Array.from(form.querySelectorAll('.payout-row')).map(row => {
+        if (!row.classList.contains('collapsed')) {
+          const maybe = readPayoutEditor(row);
+          if (maybe.amount > 0 && maybe.fromDate && maybe.toDate) {
+            syncPayoutRow(row, maybe);
+            row.classList.add('collapsed');
+          }
+        }
+        return readPayoutRow(row);
+      }).filter(p => p.amount > 0 && p.fromDate && p.toDate);
+    }
+
+    function persistJobPayoutsFromForm(form) {
+      if (!form?.classList.contains('edit-form')) return;
+      const idx = +form.dataset.index;
+      if (Number.isNaN(idx) || idx < 0 || idx >= jobs.length) return;
+      const payouts = collectPayoutsFromForm(form);
+      jobs[idx] = { ...jobs[idx], payouts };
+      localStorage.setItem('zp_jobs', JSON.stringify(jobs));
+      tickCounters();
+    }
+
     function bindJobFormUi(form) {
       if (!form || form._togglesSet) return;
       const lunchChk = form.querySelector('[name=lunchEnabled]');
@@ -880,6 +903,7 @@
         if (e.target.closest('.del-payout-btn')) {
           row.remove();
           ensureEmptyState();
+          persistJobPayoutsFromForm(form);
           return;
         }
         if (e.target.closest('.edit-payout-btn')) {
@@ -903,6 +927,7 @@
           }
           syncPayoutRow(row, data);
           row.classList.add('collapsed');
+          persistJobPayoutsFromForm(form);
           return;
         }
       });
@@ -913,6 +938,7 @@
           const data = readPayoutRow(row);
           data.hidden = !!e.target.checked;
           syncPayoutRow(row, data);
+          persistJobPayoutsFromForm(form);
         }
       });
       toggleLunch();

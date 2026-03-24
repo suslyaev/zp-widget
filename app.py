@@ -183,8 +183,15 @@ def payout_amounts(job: dict, now: datetime, started_at: date | None) -> dict[st
         if not from_date or not to_date or to_date < from_date:
             continue
         payout_sched = payout.get("schedule") or base_sched
-        period_start = datetime(from_date.year, from_date.month, from_date.day, 0, 0, 0)
-        period_end = datetime(to_date.year, to_date.month, to_date.day, 23, 59, 59)
+        # Не начислять выплату за дни до даты устройства (совпадает с is_working_day + started_at).
+        eff_from = from_date
+        if started_at and started_at > eff_from:
+            eff_from = started_at
+        eff_to = to_date
+        if eff_from > eff_to:
+            continue
+        period_start = datetime(eff_from.year, eff_from.month, eff_from.day, 0, 0, 0)
+        period_end = datetime(eff_to.year, eff_to.month, eff_to.day, 23, 59, 59)
         earned_until = min(now, period_end)
         if earned_until <= period_start:
             continue
