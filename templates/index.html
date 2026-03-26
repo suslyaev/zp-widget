@@ -1830,7 +1830,20 @@
     async function shareBlobOrFallback(blob, title, text) {
       const url = window.location.href;
       const file = blob ? new File([blob], 'zp-widget.png', { type: 'image/png' }) : null;
-      const message = `${text}\n${url}`;
+      const isPrivateHost = (() => {
+        try {
+          const h = window.location.hostname || '';
+          if (h === 'localhost' || h === '127.0.0.1') return true;
+          if (/^192\.168\./.test(h)) return true;
+          if (/^10\./.test(h)) return true;
+          if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(h)) return true;
+          return false;
+        } catch (_) {
+          return true;
+        }
+      })();
+      const shareUrl = isPrivateHost ? '' : url;
+      const message = shareUrl ? `${text}\n${shareUrl}` : text;
       const copyText = async () => {
         try {
           if (navigator.clipboard?.writeText) {
@@ -1860,13 +1873,13 @@
       if (navigator.share) {
         try {
           if (file && navigator.canShare?.({ files: [file] })) {
-            await navigator.share({ title, text, url, files: [file] });
+            await navigator.share({ title, text, ...(shareUrl ? { url: shareUrl } : {}), files: [file] });
             return;
           }
         } catch (_) {}
         // 2) Если файлы не поддерживаются, делимся текстом/ссылкой.
         try {
-          await navigator.share({ title, text, url });
+          await navigator.share({ title, text, ...(shareUrl ? { url: shareUrl } : {}) });
           return;
         } catch (_) {}
       }
@@ -1878,7 +1891,11 @@
         downloadImage();
         openImageTab();
       }
-      alert((copied ? 'Текст и ссылка скопированы. ' : '') + 'Откройте картинку и отправьте её вместе со ссылкой: ' + url);
+      if (shareUrl) {
+        alert((copied ? 'Текст и ссылка скопированы. ' : '') + 'Откройте картинку и отправьте её вместе со ссылкой: ' + shareUrl);
+      } else {
+        alert((copied ? 'Текст скопирован. ' : '') + 'Откройте картинку и отправьте её. Локальная ссылка не прикладывается вне вашей сети.');
+      }
     }
 
     async function shareCounter(idx) {
