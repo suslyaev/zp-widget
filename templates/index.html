@@ -28,7 +28,24 @@
       gap: 0.75rem;
       margin-bottom: 1.5rem;
     }
+    .title-row { display: flex; align-items: center; gap: 0.55rem; }
     h1 { font-size: 1.5rem; font-weight: 700; margin: 0; color: var(--text); }
+    .help-btn {
+      width: 1.7rem;
+      height: 1.7rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-weight: 700;
+      line-height: 1;
+      font-size: 0.95rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .help-btn:hover { color: var(--accent); border-color: var(--accent); }
     .current-datetime {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.9rem;
@@ -609,11 +626,35 @@
     }
     .measure-item .line { margin-bottom: 0.25rem; }
     .measure-item .actions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.45rem; }
+    .help-content {
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 0.92rem;
+    }
+    .help-content h4 {
+      margin: 0.9rem 0 0.35rem;
+      color: var(--text);
+      font-size: 0.96rem;
+    }
+    .help-content ul { margin: 0.25rem 0 0.6rem 1rem; color: var(--text-muted); }
+    .help-content li { margin: 0.2rem 0; }
+    .help-note {
+      margin-top: 0.9rem;
+      padding: 0.65rem 0.7rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(245, 158, 11, 0.08);
+      color: #f8d089;
+      font-size: 0.85rem;
+    }
   </style>
 </head>
 <body>
   <header class="page-header">
-    <h1>zp-widget</h1>
+    <div class="title-row">
+      <h1>zp-widget</h1>
+      <button class="help-btn" id="helpBtn" title="О проекте">?</button>
+    </div>
     <div class="current-datetime" id="currentDatetime">—</div>
   </header>
 
@@ -625,7 +666,7 @@
 
   <section class="counters-section">
     <div class="counters-header">
-      <h2>Счётчики</h2>
+      <h2>Виджеты</h2>
       <button class="add-btn" id="addCounterBtn">+ Добавить виджет</button>
     </div>
     <div class="counters-grid" id="countersGrid"></div>
@@ -648,6 +689,39 @@
         <button class="modal-close" id="zoomModalClose">Закрыть</button>
       </div>
       <div id="zoomModalBody"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="helpModal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Что умеет zp-widget</h3>
+        <button class="modal-close" id="helpModalClose">Закрыть</button>
+      </div>
+      <div class="help-content">
+        <p><strong>zp-widget</strong> показывает, как «капает» ваш заработок в реальном времени по выбранным периодам: день, неделя, месяц, год.</p>
+
+        <h4>Для чего это полезно</h4>
+        <ul>
+          <li>Видно, сколько вы реально заработали к текущему моменту.</li>
+          <li>На окладе можно запускать таймер для активности и смотреть: «пока я пил кофе/был на созвоне/вышел на перерыв, я заработал ...».</li>
+          <li>Помогает лучше чувствовать стоимость времени и загрузку в течение дня.</li>
+        </ul>
+
+        <h4>Возможности</h4>
+        <ul>
+          <li>Несколько работ одновременно.</li>
+          <li>Разные модели оплаты: оклад, дневная, почасовая, сдельная/допвыплаты.</li>
+          <li>Гибкие налоговые ставки (процентом).</li>
+          <li>Валюты у работы и у виджета + конвертация по курсам.</li>
+          <li>Графики работы, обеды, индивидуальные дни, отпуска.</li>
+          <li>Секундомеры и шаринг карточек виджета/замеров.</li>
+        </ul>
+
+        <div class="help-note">
+          <strong>Важно:</strong> цифры в виджете — это оценка фактически заработанного за период, а не гарантия суммы «к выплате сегодня на карту». На практике выплаты часто разбиты на аванс и расчёт и могут приходить в другие даты.
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2155,7 +2229,15 @@
       localStorage.setItem('zp_counters', JSON.stringify(counters.map(c => ({ ...c, _new: undefined }))));
       renderJobs();
       renderCounters();
+      updateAddCounterVisibility();
       tickCounters();
+    }
+
+    function updateAddCounterVisibility() {
+      const addCounterBtn = document.getElementById('addCounterBtn');
+      if (addCounterBtn) addCounterBtn.style.display = jobs.length ? 'inline-block' : 'none';
+      const countersSection = document.querySelector('.counters-section');
+      if (countersSection) countersSection.style.display = jobs.length ? 'block' : 'none';
     }
 
     document.getElementById('addJobBtn').onclick = () => {
@@ -2181,8 +2263,11 @@
 
     document.getElementById('timerModalClose').onclick = closeTimerModal;
     document.getElementById('zoomModalClose').onclick = closeZoomModal;
+    document.getElementById('helpBtn').onclick = () => document.getElementById('helpModal')?.classList.add('open');
+    document.getElementById('helpModalClose').onclick = () => document.getElementById('helpModal')?.classList.remove('open');
     document.getElementById('timerModal').addEventListener('click', (e) => { if (e.target.id === 'timerModal') closeTimerModal(); });
     document.getElementById('zoomModal').addEventListener('click', (e) => { if (e.target.id === 'zoomModal') closeZoomModal(); });
+    document.getElementById('helpModal').addEventListener('click', (e) => { if (e.target.id === 'helpModal') document.getElementById('helpModal')?.classList.remove('open'); });
 
     function updateDateTime() {
       const el = document.getElementById('currentDatetime');
@@ -2193,6 +2278,7 @@
 
     renderJobs();
     renderCounters();
+    updateAddCounterVisibility();
     updateJobStatuses();
     loadFxRates().then(() => tickCounters());
     setInterval(updateJobStatuses, 1000);
