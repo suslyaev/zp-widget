@@ -86,6 +86,7 @@
     }
     .job-card.status-working .status-badge { background: var(--accent); }
     .job-card.status-lunch .status-badge { background: #f59e0b; }
+    .job-card.status-vacation .status-badge { background: #7c3aed; }
     .job-card.status-off .status-badge { background: var(--border); }
     .job-card .status-label {
       font-size: 0.7rem;
@@ -98,6 +99,7 @@
     }
     .job-card.status-working .status-label { color: var(--accent); background: rgba(0, 212, 170, 0.15); }
     .job-card.status-lunch .status-label { color: #f59e0b; background: rgba(245, 158, 11, 0.15); }
+    .job-card.status-vacation .status-label { color: #c4b5fd; background: rgba(124, 58, 237, 0.2); }
     .job-card.status-off .status-label { color: var(--text-muted); background: rgba(255,255,255,0.05); }
     .job-card .remove-btn {
       position: absolute;
@@ -197,12 +199,23 @@
     .edit-form .btn-row button { padding: 0.45rem 1rem; border-radius: 6px; border: none; font-family: inherit; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
     .edit-form .save-btn { background: var(--accent); color: var(--bg); }
     .edit-form .cancel-btn { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
-    .edit-form .payouts-block {
+    .edit-form .collapsible-toggle { margin-top: 0.5rem; }
+    .edit-form .collapsible-block {
       background: rgba(255,255,255,0.03);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 0.7rem;
+      margin-top: 0.5rem;
+      display: none;
     }
+    .edit-form .schedule-block,
+    .edit-form .salary-block {
+      display: none;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.7rem 1rem;
+    }
+    .edit-form .schedule-block .full,
+    .edit-form .salary-block .full { grid-column: 1 / -1; }
     .edit-form .payout-row {
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -261,7 +274,7 @@
     }
     .edit-form .payout-btn:hover { color: var(--accent); border-color: var(--accent); }
     .edit-form .payout-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
-    .edit-form .add-payout-btn {
+    .edit-form .add-row-btn {
       background: transparent;
       color: var(--accent);
       border: 1px dashed var(--accent);
@@ -273,7 +286,7 @@
       width: 100%;
       margin-top: 0.4rem;
     }
-    .edit-form .payout-empty {
+    .edit-form .empty-state {
       font-size: 0.82rem;
       color: var(--text-muted);
       text-align: center;
@@ -281,6 +294,17 @@
       border: 1px dashed var(--border);
       border-radius: 6px;
     }
+    .edit-form .vacation-row {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.55rem;
+      margin-bottom: 0.45rem;
+      background: rgba(0,0,0,0.2);
+    }
+    .edit-form .vacation-row:last-child { margin-bottom: 0; }
+    .edit-form .vacation-row.collapsed .vac-editor { display: none; }
+    .edit-form .vacation-row:not(.collapsed) .vac-summary { display: none; }
+    .edit-form .vacation-actions { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-top: 0.45rem; }
     .job-card.new-job { border-style: dashed; border-color: var(--accent); background: rgba(0, 212, 170, 0.05); }
     .job-card.new-job .edit-form { display: block; }
     .job-card.new-job .info, .job-card.new-job .remove-btn { display: none; }
@@ -410,6 +434,20 @@
       flex-wrap: wrap;
     }
     .counter-widget .config-form .cfg-row .cfg-field { flex: 1; min-width: 0; }
+    .counter-widget .config-form .fx-manual {
+      margin-top: 0.45rem;
+      padding: 0.55rem;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .counter-widget .config-form .fx-manual .fx-note {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      line-height: 1.3;
+    }
     .counter-widget .config-form select {
       width: 100%;
       padding: 0.45rem 0.6rem;
@@ -630,6 +668,15 @@
       { id: 'BYN', label: 'BYN (Br)' },
       { id: 'UAH', label: 'UAH (₴)' },
     ];
+    const COUNTRIES = [
+      { id: 'RU', label: 'Россия' },
+      { id: 'KZ', label: 'Казахстан' },
+      { id: 'BY', label: 'Беларусь' },
+      { id: 'UA', label: 'Украина' },
+      { id: 'US', label: 'США' },
+      { id: 'DE', label: 'Германия' },
+      { id: 'GB', label: 'Великобритания' },
+    ];
     const PERIODS = [
       { id: 'day', label: 'С начала дня' },
       { id: 'week', label: 'С начала недели' },
@@ -640,10 +687,12 @@
     const WEEKDAYS = [0,1,2,3,4];
     const WEEKDAY_LABELS = { 0: 'Пн', 1: 'Вт', 2: 'Ср', 3: 'Чт', 4: 'Пт' };
     const defaultJob = () => ({
-      name: '', startedAt: '', schedule: '5x2',
+      name: '', employer: '', startedAt: '', schedule: '5x2',
       workFrom: '09:00', workTo: '17:00', lunchFrom: '13:00', lunchTo: '14:00',
       lunchEnabled: true, daySchedules: null,
+      vacations: [],
       payouts: [],
+      calendarCountry: 'RU', calendarOverrides: [],
       rate: 0, rateUnit: 'month', taxRate: 0, currency: 'RUB',
     });
 
@@ -660,6 +709,16 @@
         fromDate: p?.fromDate || '',
         toDate: p?.toDate || '',
         hidden: !!p?.hidden,
+      })) : [];
+      m.vacations = Array.isArray(m.vacations) ? m.vacations.map(v => ({
+        title: v?.title || '',
+        fromDate: v?.fromDate || '',
+        toDate: v?.toDate || '',
+      })) : [];
+      m.calendarCountry = String(m.calendarCountry || 'RU').toUpperCase();
+      m.calendarOverrides = Array.isArray(m.calendarOverrides) ? m.calendarOverrides.map(o => ({
+        date: o?.date || '',
+        type: o?.type === 'work' ? 'work' : 'off',
       })) : [];
       m.taxRate = Number(m.taxRate ?? (m.taxType === 'none' ? 0 : m.taxType) ?? 0);
       m.currency = String(m.currency || 'RUB').toUpperCase();
@@ -681,10 +740,12 @@
 
     let jobStatuses = {};
     let fxRatesToRub = { RUB: 1 };
+    let fxManualToRub = JSON.parse(localStorage.getItem('zp_fx_manual_to_rub') || '{}');
     let openTimerCounterIdx = null;
     let openZoomCounterIdx = null;
     let measurementSort = 'newest';
     let measurementFilter = 'all';
+    let holidaysCache = JSON.parse(localStorage.getItem('zp_holidays_cache') || '{}');
 
     function formatMoney(n, currency = 'RUB', roundToUnit = false) {
       const amount = roundToUnit ? Math.floor(n) : n;
@@ -698,7 +759,11 @@
 
     function toRubRate(currency) {
       const c = String(currency || 'RUB').toUpperCase();
-      return fxRatesToRub[c] || 1;
+      const apiRate = Number(fxRatesToRub[c] || 0);
+      if (apiRate > 0) return apiRate;
+      const manualRate = Number(fxManualToRub[c] || 0);
+      if (manualRate > 0) return manualRate;
+      return 1;
     }
 
     function convertCurrency(amount, fromCurrency, toCurrency) {
@@ -719,6 +784,49 @@
       return `Курс: ${parts.join(' · ')}`;
     }
 
+    function overrideRowHtml(o = {}, collapsed = true) {
+      const d = o.date || '';
+      const t = o.type === 'work' ? 'work' : 'off';
+      const typeLabel = t === 'work' ? 'Рабочий (в выходной)' : 'Выходной (в рабочий)';
+      return `
+        <div class="vacation-row override-row ${collapsed ? 'collapsed' : ''}">
+          <input type="hidden" name="ov_data" value='${escapeAttr(JSON.stringify({ date: d, type: t }))}'>
+          <div class="vac-summary">
+            <div>${escapeAttr(d || '—')} · ${typeLabel}</div>
+            <div class="vacation-actions">
+              <button type="button" class="payout-btn edit-ov-btn">Редактировать</button>
+              <button type="button" class="payout-btn danger del-ov-btn">Удалить</button>
+            </div>
+          </div>
+          <div class="vac-editor">
+            <div class="field"><label>Дата</label><input type="date" name="ov_date" value="${d}"></div>
+            <div class="field"><label>Тип</label><select name="ov_type"><option value="off" ${t === 'off' ? 'selected' : ''}>Сделать выходным</option><option value="work" ${t === 'work' ? 'selected' : ''}>Сделать рабочим</option></select></div>
+            <div class="vacation-actions">
+              <button type="button" class="payout-btn save-ov-btn">Сохранить</button>
+              <button type="button" class="payout-btn danger del-ov-btn">Удалить</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function getHolidayOffDates(country, year) {
+      const key = `${String(country || 'RU').toUpperCase()}_${year}`;
+      if (Array.isArray(holidaysCache[key])) return holidaysCache[key];
+      try {
+        const res = await fetch(`/api/holidays?country=${encodeURIComponent(String(country || 'RU').toUpperCase())}&year=${year}`);
+        const data = await res.json();
+        const arr = Array.isArray(data?.offDates) ? data.offDates : [];
+        holidaysCache[key] = arr;
+        localStorage.setItem('zp_holidays_cache', JSON.stringify(holidaysCache));
+        return arr;
+      } catch (_) {
+        holidaysCache[key] = [];
+        localStorage.setItem('zp_holidays_cache', JSON.stringify(holidaysCache));
+        return [];
+      }
+    }
+
     async function loadFxRates() {
       try {
         const res = await fetch('https://www.cbr-xml-daily.ru/daily_json.js');
@@ -730,7 +838,27 @@
           if (v?.Value && v?.Nominal) rates[code.toUpperCase()] = Number(v.Value) / Number(v.Nominal);
         });
         fxRatesToRub = { ...fxRatesToRub, ...rates };
+        // После прихода API-курсов обновляем подписи и значения виджетов.
+        renderCounters();
+        tickCounters();
       } catch (_) {}
+    }
+
+    function saveManualFx() {
+      localStorage.setItem('zp_fx_manual_to_rub', JSON.stringify(fxManualToRub));
+    }
+
+    function buildManualFxInputs(cfg) {
+      const target = String(cfg?.currency || 'RUB').toUpperCase();
+      const jobCurrencies = (cfg?.jobIds || []).map(id => String(jobs[id]?.currency || 'RUB').toUpperCase());
+      const used = Array.from(new Set([...jobCurrencies, target])).filter(c => c !== 'RUB');
+      if (!used.length) return '';
+      return `
+        <div class="fx-manual">
+          ${used.map(c => `<label class="cfg-field">1 ${c} = <input type="number" step="0.0001" min="0" data-fx-manual="${c}" value="${Number(fxManualToRub[c] || fxRatesToRub[c] || '').toString()}"> RUB</label>`).join('')}
+          <div class="fx-note">Если интернет/API недоступны, введите курсы вручную. Пусто = использовать загруженный курс.</div>
+        </div>
+      `;
     }
 
     function formatDate(s) {
@@ -761,6 +889,10 @@
       return `${formatMoney(Number(job.rate || 0), job.currency || 'RUB', false)}/${u}${t}`;
     }
 
+    function employerLabel(job, idx) {
+      return (job?.employer || '').trim() || (job?.name || '').trim() || `Работа ${idx + 1}`;
+    }
+
     function escapeAttr(s) {
       return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
@@ -779,6 +911,10 @@
       const tax = Number(p.taxRate || 0) > 0 ? `налог ${Number(p.taxRate || 0)}%` : 'без доп. вычета';
       const hidden = p.hidden ? ' · скрыта' : '';
       return `<strong>${escapeAttr(payoutLabel(p.kind))}</strong>${p.title ? ` — ${escapeAttr(p.title)}` : ''} · ${amount} ₽ · ${escapeAttr(tax)} · ${escapeAttr(scheduleLabel(p.schedule))} · ${escapeAttr(p.fromDate || '—')} — ${escapeAttr(p.toDate || '—')}<span class="muted">${hidden}</span>`;
+    }
+
+    function vacationSummaryHtml(v) {
+      return `${escapeAttr(v.title || 'Отпуск')} · ${escapeAttr(v.fromDate || '—')} — ${escapeAttr(v.toDate || '—')}`;
     }
 
     function payoutRowHtml(payout = {}, collapsed = true) {
@@ -828,11 +964,60 @@
       `;
     }
 
+    function vacationRowHtml(vacation = {}, collapsed = true) {
+      const v = {
+        title: vacation.title || '',
+        fromDate: vacation.fromDate || '',
+        toDate: vacation.toDate || '',
+      };
+      return `
+        <div class="vacation-row ${collapsed ? 'collapsed' : ''}">
+          <input type="hidden" name="vac_data" value='${escapeAttr(JSON.stringify(v))}'>
+          <div class="vac-summary">
+            <div>${vacationSummaryHtml(v)}</div>
+            <div class="vacation-actions">
+              <button type="button" class="payout-btn edit-vac-btn">Редактировать</button>
+              <button type="button" class="payout-btn danger del-vac-btn">Удалить</button>
+            </div>
+          </div>
+          <div class="vac-editor">
+            <div class="field"><label>Название</label><input type="text" name="vac_title" value="${escapeAttr(v.title)}" placeholder="Отпуск"></div>
+            <div class="field"><label>Период</label><div class="field-row"><input type="date" name="vac_from" value="${v.fromDate}"><span>–</span><input type="date" name="vac_to" value="${v.toDate}"></div></div>
+            <div class="vacation-actions">
+              <button type="button" class="payout-btn save-vac-btn">Сохранить отпуск</button>
+              <button type="button" class="payout-btn danger del-vac-btn">Удалить</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     async function fetchEarnedBatch(jobsList) {
+      const year = new Date().getFullYear();
+      const enrichedJobs = await Promise.all((jobsList || []).map(async (job) => {
+        if ((job?.schedule || '5x2') !== '5x2') return job;
+        const country = String(job?.calendarCountry || 'RU').toUpperCase();
+        const offDatesApi = await getHolidayOffDates(country, year);
+        const overrides = Array.isArray(job?.calendarOverrides) ? job.calendarOverrides : [];
+        const offDates = new Set(offDatesApi);
+        const workDates = new Set();
+        overrides.forEach(o => {
+          const d = o?.date;
+          if (!d) return;
+          if (o.type === 'work') {
+            workDates.add(d);
+            offDates.delete(d);
+          } else {
+            offDates.add(d);
+            workDates.delete(d);
+          }
+        });
+        return { ...job, calendar: { offDates: Array.from(offDates), workDates: Array.from(workDates) } };
+      }));
       const res = await fetch(API_BATCH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobs: jobsList })
+        body: JSON.stringify({ jobs: enrichedJobs })
       });
       const data = await res.json();
       return data.results || [];
@@ -844,6 +1029,8 @@
       const useDaySchedules = !!(job.daySchedules && Object.keys(job.daySchedules).length);
       const ds = job.daySchedules || {};
       const payouts = Array.isArray(job.payouts) ? job.payouts : [];
+      const vacations = Array.isArray(job.vacations) ? job.vacations : [];
+      const overrides = Array.isArray(job.calendarOverrides) ? job.calendarOverrides : [];
       const dayRows = WEEKDAYS.map(wd => {
         const d = ds[String(wd)] || ds[wd] || {};
         return `<div class="day-row"><span class="day-label">${WEEKDAY_LABELS[wd]}</span>
@@ -853,25 +1040,53 @@
           ${lunchEnabled ? `<input type="time" name="day_${wd}_lunchFrom" value="${d.lunchFrom || job.lunchFrom || '13:00'}"><span>–</span><input type="time" name="day_${wd}_lunchTo" value="${d.lunchTo || job.lunchTo || '14:00'}">` : ''}
         </div>`;
       }).join('');
-      const payoutRows = payouts.length ? payouts.map(p => payoutRowHtml(p, true)).join('') : '<div class="payout-empty">Допвыплаты не добавлены</div>';
+      const payoutRows = payouts.length ? payouts.map(p => payoutRowHtml(p, true)).join('') : '<div class="empty-state">Допвыплаты не добавлены</div>';
+      const vacationRows = vacations.length ? vacations.map(v => vacationRowHtml(v, true)).join('') : '<div class="empty-state">Периоды отпусков не добавлены</div>';
+      const overrideRows = overrides.length ? overrides.map(o => overrideRowHtml(o, true)).join('') : '<div class="empty-state">Переопределений нет</div>';
       return `
         <form class="edit-form" data-index="${index}">
           <div class="form-grid">
-            <div class="field full"><label>Название</label><input type="text" name="name" value="${escapeAttr(job.name || '')}" placeholder="Название работы"></div>
+            <div class="field full"><label>Название (должность/роль)</label><input type="text" name="name" value="${escapeAttr(job.name || '')}" placeholder="Например, Разработчик JS"></div>
+            <div class="field"><label>Работодатель</label><input type="text" name="employer" value="${escapeAttr(job.employer || '')}" placeholder="Например, ООО Ромашка"></div>
             <div class="field"><label>Дата устройства</label><input type="date" name="startedAt" value="${job.startedAt || ''}"></div>
-            <div class="field"><label>График</label><select name="schedule">${SCHEDULES.map(s => `<option value="${s.id}" ${job.schedule === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}</select></div>
-            <div class="field"><label>Время работы</label><div class="field-row"><input type="time" name="workFrom" value="${job.workFrom || '09:00'}"><span>–</span><input type="time" name="workTo" value="${job.workTo || '17:00'}"></div></div>
-            <div class="field"><label>Обед</label><div class="field-stack"><div class="chk-row"><input type="checkbox" name="lunchEnabled" ${lunchEnabled ? 'checked' : ''}><span class="chk-label">Есть обед</span></div><div class="field-row"><input type="time" name="lunchFrom" value="${job.lunchFrom || '13:00'}" ${!lunchEnabled ? 'disabled' : ''}><span>–</span><input type="time" name="lunchTo" value="${job.lunchTo || '14:00'}" ${!lunchEnabled ? 'disabled' : ''}></div></div></div>
-            <div class="field full chk-only"><div class="chk-row"><input type="checkbox" name="useDaySchedules" ${useDaySchedules ? 'checked' : ''}><span class="chk-label">Разное время по дням (5×2)</span></div></div>
-            <div class="field full day-schedules-block" style="display:${useDaySchedules ? 'block' : 'none'}"><div class="day-schedules">${dayRows}</div></div>
-            <div class="field"><label>Ставка</label><div class="field-row"><input type="number" class="rate-input" name="rate" value="${job.rate || ''}" min="0" step="0.01" placeholder="0"><select name="rateUnit">${RATE_UNITS.map(u => `<option value="${u.id}" ${job.rateUnit === u.id ? 'selected' : ''}>${u.label}</option>`).join('')}</select></div></div>
-            <div class="field"><label>Налог, %</label><input type="number" name="taxRate" min="0" max="100" step="0.01" value="${Number(job.taxRate || 0)}" placeholder="0"></div>
-            <div class="field"><label>Валюта</label><select name="currency">${CURRENCIES.map(c => `<option value="${c.id}" ${(job.currency || 'RUB') === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}</select></div>
-            <div class="field full">
-              <label>Допвыплаты</label>
-              <div class="payouts-block">
+            <div class="field full collapsible-toggle">
+              <button type="button" class="payout-btn toggle-schedule-btn">Рабочий график</button>
+              <div class="collapsible-block schedule-block">
+                <div class="field"><label>График</label><select name="schedule">${SCHEDULES.map(s => `<option value="${s.id}" ${job.schedule === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}</select></div>
+                <div class="field"><label>Страна календаря (для 5×2)</label><select name="calendarCountry">${COUNTRIES.map(c => `<option value="${c.id}" ${job.calendarCountry === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}</select><small style="color: var(--text-muted); font-size: 0.75rem;">Если API календаря недоступен, используется стандарт пн-пт + ваши ручные корректировки.</small></div>
+                <div class="field"><label>Время работы</label><div class="field-row"><input type="time" name="workFrom" value="${job.workFrom || '09:00'}"><span>–</span><input type="time" name="workTo" value="${job.workTo || '17:00'}"></div></div>
+                <div class="field"><label>Обед</label><div class="field-stack"><div class="chk-row"><input type="checkbox" name="lunchEnabled" ${lunchEnabled ? 'checked' : ''}><span class="chk-label">Есть обед</span></div><div class="field-row"><input type="time" name="lunchFrom" value="${job.lunchFrom || '13:00'}" ${!lunchEnabled ? 'disabled' : ''}><span>–</span><input type="time" name="lunchTo" value="${job.lunchTo || '14:00'}" ${!lunchEnabled ? 'disabled' : ''}></div></div></div>
+                <div class="field full chk-only"><div class="chk-row"><input type="checkbox" name="useDaySchedules" ${useDaySchedules ? 'checked' : ''}><span class="chk-label">Разное время по дням (5×2)</span></div></div>
+                <div class="field full day-schedules-block" style="display:${useDaySchedules ? 'block' : 'none'}"><div class="day-schedules">${dayRows}</div></div>
+                <div class="field full collapsible-toggle">
+                  <button type="button" class="payout-btn toggle-overrides-btn">Нестандартные дни (${overrides.length})</button>
+                  <div class="collapsible-block overrides-block">
+                    <div class="overrides-rows">${overrideRows}</div>
+                    <button type="button" class="add-row-btn add-ov-btn">+ Добавить день</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="field full collapsible-toggle">
+              <button type="button" class="payout-btn toggle-salary-btn">Зарплата</button>
+              <div class="collapsible-block salary-block">
+                <div class="field"><label>Ставка</label><div class="field-row"><input type="number" class="rate-input" name="rate" value="${job.rate || ''}" min="0" step="0.01" placeholder="0"><select name="rateUnit">${RATE_UNITS.map(u => `<option value="${u.id}" ${job.rateUnit === u.id ? 'selected' : ''}>${u.label}</option>`).join('')}</select></div></div>
+                <div class="field"><label>Налог, %</label><input type="number" name="taxRate" min="0" max="100" step="0.01" value="${Number(job.taxRate || 0)}" placeholder="0"></div>
+                <div class="field"><label>Валюта</label><select name="currency">${CURRENCIES.map(c => `<option value="${c.id}" ${(job.currency || 'RUB') === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}</select></div>
+              </div>
+            </div>
+            <div class="field full collapsible-toggle">
+              <button type="button" class="payout-btn toggle-vacations-btn">Отпуска (${vacations.length})</button>
+              <div class="collapsible-block vacations-block">
+                <div class="vacations-rows">${vacationRows}</div>
+                <button type="button" class="add-row-btn add-vac-btn">+ Добавить отпуск</button>
+              </div>
+            </div>
+            <div class="field full collapsible-toggle">
+              <button type="button" class="payout-btn toggle-payouts-btn">Допвыплаты (${payouts.length})</button>
+              <div class="collapsible-block payouts-block">
                 <div class="payouts-rows">${payoutRows}</div>
-                <button type="button" class="add-payout-btn">+ Добавить выплату</button>
+                <button type="button" class="add-row-btn add-payout-btn">+ Добавить выплату</button>
               </div>
             </div>
           </div>
@@ -912,6 +1127,51 @@
       return readPayoutEditor(row);
     }
 
+    function readVacationEditor(row) {
+      return {
+        title: row.querySelector('[name=vac_title]')?.value?.trim() || '',
+        fromDate: row.querySelector('[name=vac_from]')?.value || '',
+        toDate: row.querySelector('[name=vac_to]')?.value || '',
+      };
+    }
+
+    function syncVacationRow(row, vac) {
+      const h = row.querySelector('[name=vac_data]');
+      if (h) h.value = JSON.stringify(vac);
+      const s = row.querySelector('.vac-summary > div');
+      if (s) s.textContent = `${vac.title || 'Отпуск'} · ${vac.fromDate || '—'} — ${vac.toDate || '—'}`;
+    }
+
+    function readVacationRow(row) {
+      const h = row.querySelector('[name=vac_data]');
+      if (h?.value) {
+        try { return JSON.parse(h.value); } catch (_) {}
+      }
+      return readVacationEditor(row);
+    }
+
+    function readOverrideEditor(row) {
+      return {
+        date: row.querySelector('[name=ov_date]')?.value || '',
+        type: row.querySelector('[name=ov_type]')?.value === 'work' ? 'work' : 'off',
+      };
+    }
+
+    function syncOverrideRow(row, data) {
+      const h = row.querySelector('[name=ov_data]');
+      if (h) h.value = JSON.stringify(data);
+      const s = row.querySelector('.vac-summary > div');
+      if (s) s.textContent = `${data.date || '—'} · ${data.type === 'work' ? 'Рабочий (в выходной)' : 'Выходной (в рабочий)'}`;
+    }
+
+    function readOverrideRow(row) {
+      const h = row.querySelector('[name=ov_data]');
+      if (h?.value) {
+        try { return JSON.parse(h.value); } catch (_) {}
+      }
+      return readOverrideEditor(row);
+    }
+
     function collectPayoutsFromForm(form) {
       return Array.from(form.querySelectorAll('.payout-row')).map(row => {
         if (!row.classList.contains('collapsed')) {
@@ -942,6 +1202,20 @@
       const dayBlock = form.querySelector('.day-schedules-block');
       const payoutsRows = form.querySelector('.payouts-rows');
       const addPayoutBtn = form.querySelector('.add-payout-btn');
+      const payoutsBlock = form.querySelector('.payouts-block');
+      const togglePayoutBtn = form.querySelector('.toggle-payouts-btn');
+      const scheduleBlock = form.querySelector('.schedule-block');
+      const toggleScheduleBtn = form.querySelector('.toggle-schedule-btn');
+      const salaryBlock = form.querySelector('.salary-block');
+      const toggleSalaryBtn = form.querySelector('.toggle-salary-btn');
+      const overridesBlock = form.querySelector('.overrides-block');
+      const overridesRows = form.querySelector('.overrides-rows');
+      const addOvBtn = form.querySelector('.add-ov-btn');
+      const toggleOvBtn = form.querySelector('.toggle-overrides-btn');
+      const vacBlock = form.querySelector('.vacations-block');
+      const vacRows = form.querySelector('.vacations-rows');
+      const addVacBtn = form.querySelector('.add-vac-btn');
+      const toggleVacBtn = form.querySelector('.toggle-vacations-btn');
 
       const toggleLunch = () => {
         form.querySelectorAll('input[name=lunchFrom],input[name=lunchTo],input[name*=lunchFrom],input[name*=lunchTo]').forEach(i => {
@@ -953,16 +1227,43 @@
       };
       const ensureEmptyState = () => {
         const hasRows = form.querySelectorAll('.payout-row').length > 0;
-        if (!hasRows && payoutsRows) payoutsRows.innerHTML = '<div class="payout-empty">Допвыплаты не добавлены</div>';
+        if (!hasRows && payoutsRows) payoutsRows.innerHTML = '<div class="empty-state">Допвыплаты не добавлены</div>';
       };
 
       lunchChk?.addEventListener('change', toggleLunch);
       useDaysChk?.addEventListener('change', toggleDays);
       addPayoutBtn?.addEventListener('click', () => {
         if (!payoutsRows) return;
-        const empty = payoutsRows.querySelector('.payout-empty');
+        const empty = payoutsRows.querySelector('.empty-state');
         if (empty) empty.remove();
         payoutsRows.insertAdjacentHTML('beforeend', payoutRowHtml({}, false));
+      });
+      togglePayoutBtn?.addEventListener('click', () => {
+        if (payoutsBlock) payoutsBlock.style.display = payoutsBlock.style.display === 'none' || !payoutsBlock.style.display ? 'block' : 'none';
+      });
+      toggleScheduleBtn?.addEventListener('click', () => {
+        if (scheduleBlock) scheduleBlock.style.display = scheduleBlock.style.display === 'none' || !scheduleBlock.style.display ? 'grid' : 'none';
+      });
+      toggleSalaryBtn?.addEventListener('click', () => {
+        if (salaryBlock) salaryBlock.style.display = salaryBlock.style.display === 'none' || !salaryBlock.style.display ? 'grid' : 'none';
+      });
+      toggleOvBtn?.addEventListener('click', () => {
+        if (overridesBlock) overridesBlock.style.display = overridesBlock.style.display === 'none' || !overridesBlock.style.display ? 'block' : 'none';
+      });
+      addOvBtn?.addEventListener('click', () => {
+        if (!overridesRows) return;
+        const empty = overridesRows.querySelector('.empty-state');
+        if (empty) empty.remove();
+        overridesRows.insertAdjacentHTML('beforeend', overrideRowHtml({}, false));
+      });
+      toggleVacBtn?.addEventListener('click', () => {
+        if (vacBlock) vacBlock.style.display = vacBlock.style.display === 'none' || !vacBlock.style.display ? 'block' : 'none';
+      });
+      addVacBtn?.addEventListener('click', () => {
+        if (!vacRows) return;
+        const empty = vacRows.querySelector('.empty-state');
+        if (empty) empty.remove();
+        vacRows.insertAdjacentHTML('beforeend', vacationRowHtml({}, false));
       });
       payoutsRows?.addEventListener('click', (e) => {
         const row = e.target.closest('.payout-row');
@@ -998,6 +1299,57 @@
           return;
         }
       });
+      vacRows?.addEventListener('click', (e) => {
+        const row = e.target.closest('.vacation-row');
+        if (!row) return;
+        if (e.target.closest('.del-vac-btn')) {
+          row.remove();
+          if (!form.querySelector('.vacation-row') && vacRows) vacRows.innerHTML = '<div class="empty-state">Периоды отпусков не добавлены</div>';
+          return;
+        }
+        if (e.target.closest('.edit-vac-btn')) {
+          const data = readVacationRow(row);
+          row.querySelector('[name=vac_title]').value = data.title || '';
+          row.querySelector('[name=vac_from]').value = data.fromDate || '';
+          row.querySelector('[name=vac_to]').value = data.toDate || '';
+          row.classList.remove('collapsed');
+          return;
+        }
+        if (e.target.closest('.save-vac-btn')) {
+          const data = readVacationEditor(row);
+          if (!data.fromDate || !data.toDate) {
+            alert('Для отпуска укажите период с/по.');
+            return;
+          }
+          syncVacationRow(row, data);
+          row.classList.add('collapsed');
+        }
+      });
+      overridesRows?.addEventListener('click', (e) => {
+        const row = e.target.closest('.override-row');
+        if (!row) return;
+        if (e.target.closest('.del-ov-btn')) {
+          row.remove();
+          if (!form.querySelector('.override-row') && overridesRows) overridesRows.innerHTML = '<div class="empty-state">Переопределений нет</div>';
+          return;
+        }
+        if (e.target.closest('.edit-ov-btn')) {
+          const data = readOverrideRow(row);
+          row.querySelector('[name=ov_date]').value = data.date || '';
+          row.querySelector('[name=ov_type]').value = data.type || 'off';
+          row.classList.remove('collapsed');
+          return;
+        }
+        if (e.target.closest('.save-ov-btn')) {
+          const data = readOverrideEditor(row);
+          if (!data.date) {
+            alert('Укажите дату.');
+            return;
+          }
+          syncOverrideRow(row, data);
+          row.classList.add('collapsed');
+        }
+      });
       payoutsRows?.addEventListener('change', (e) => {
         const row = e.target.closest('.payout-row');
         if (!row) return;
@@ -1021,10 +1373,10 @@
         document.querySelectorAll('.job-card').forEach((card, i) => {
           if (card.classList.contains('editing')) return;
           const s = jobStatuses[i] || 'off';
-          card.classList.remove('status-working', 'status-lunch', 'status-off');
+          card.classList.remove('status-working', 'status-lunch', 'status-vacation', 'status-off');
           card.classList.add('status-' + s);
           const label = card.querySelector('.status-label');
-          if (label) label.textContent = { working: 'Работаю', lunch: 'Обед', off: 'Вне работы' }[s];
+          if (label) label.textContent = { working: 'Работаю', lunch: 'Обед', vacation: 'Отпуск', off: 'Вне работы' }[s];
         });
       } catch (_) {}
     }
@@ -1036,18 +1388,20 @@
         const div = document.createElement('div');
         div.className = 'job-card status-' + (jobStatuses[i] || 'off') + (job._new ? ' new-job editing' : '');
         div.dataset.index = i;
-        const name = job.name || `Работа ${i + 1}`;
+        const name = (job.name || `Работа ${i + 1}`);
+        const employer = employerLabel(job, i);
         const status = jobStatuses[i] || 'off';
-        const statusLabels = { working: 'Работаю', lunch: 'Обед', off: 'Вне работы' };
+        const statusLabels = { working: 'Работаю', lunch: 'Обед', vacation: 'Отпуск', off: 'Вне работы' };
         div.innerHTML = `
           <div class="status-badge"></div>
           <button class="remove-btn" data-remove="${i}" title="Удалить">×</button>
           <div class="info">
             <div class="name-row">
-              <span class="name" data-edit="${i}">${name.replace(/</g, '&lt;')}</span>
+              <span class="name" data-edit="${i}">${escapeAttr(name)}</span>
               <span class="status-label">${statusLabels[status]}</span>
             </div>
             <div class="meta">
+              <span>🏢 ${escapeAttr(employer)}</span>
               <span>📅 ${formatDate(job.startedAt)}</span>
               <span>📋 ${SCHEDULES.find(s => s.id === job.schedule)?.label || job.schedule}</span>
               <span>🕐 ${job.schedule === '24x7' ? '24×7 (ежесекундно)' : `${job.workFrom || '09:00'}–${job.workTo || '17:00'}${job.lunchEnabled !== false ? ` (обед ${job.lunchFrom || '13:00'}–${job.lunchTo || '14:00'})` : ' (без обеда)'}`}</span>
@@ -1069,7 +1423,7 @@
         div.className = 'counter-widget' + (cfg._new ? ' new-counter configuring' : '');
         div.dataset.index = i;
         const periodLabel = PERIODS.find(p => p.id === cfg.period)?.label || cfg.period;
-        const jobsLabel = cfg.jobIds.length === 0 ? '—' : cfg.jobIds.map(id => jobs[id]?.name || `Работа ${id + 1}`).join(', ');
+        const jobsLabel = cfg.jobIds.length === 0 ? '—' : cfg.jobIds.map(id => employerLabel(jobs[id], id)).join(', ');
         const widgetTitle = (cfg.name && String(cfg.name).trim())
           ? escapeAttr(cfg.name)
           : `${jobsLabel} · ${periodLabel}`;
@@ -1087,7 +1441,7 @@
           <div class="config-form">
             <div class="cfg-section">
               <div class="cfg-label">Работы</div>
-              <div class="jobs-list" data-jobs="${i}">${jobs.length ? jobs.map((j, idx) => `<label class="job-chk"><input type="checkbox" value="${idx}" ${(cfg.jobIds || []).includes(idx) ? 'checked' : ''}> ${(j.name || 'Работа ' + (idx + 1)).replace(/</g, '&lt;')}</label>`).join('') : '<span class="jobs-empty">Добавьте работы выше</span>'}</div>
+              <div class="jobs-list" data-jobs="${i}">${jobs.length ? jobs.map((j, idx) => `<label class="job-chk"><input type="checkbox" value="${idx}" ${(cfg.jobIds || []).includes(idx) ? 'checked' : ''}> ${escapeAttr(employerLabel(j, idx))}</label>`).join('') : '<span class="jobs-empty">Добавьте работы выше</span>'}</div>
             </div>
             <div class="cfg-section">
               <div class="cfg-label">Период и отображение</div>
@@ -1096,6 +1450,7 @@
                 <div class="cfg-field"><select data-tax="${i}"><option value="net" ${cfg.taxDisplay === 'net' ? 'selected' : ''}>После вычета</option><option value="gross" ${cfg.taxDisplay === 'gross' ? 'selected' : ''}>До вычета</option></select></div>
                 <div class="cfg-field"><select data-currency="${i}">${CURRENCIES.map(c => `<option value="${c.id}" ${(cfg.currency || 'RUB') === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}</select></div>
               </div>
+              ${buildManualFxInputs(cfg)}
             </div>
             <div class="cfg-section">
               <div class="cfg-label">Название виджета</div>
@@ -1245,7 +1600,7 @@
       document.getElementById('zoomModal').classList.add('open');
       const cfg = counters[counterIdx];
       const periodLabel = PERIODS.find(p => p.id === cfg?.period)?.label || cfg?.period || '—';
-      const jobsLabel = (cfg?.jobIds || []).length === 0 ? '—' : cfg.jobIds.map(id => jobs[id]?.name || `Работа ${id + 1}`).join(', ');
+      const jobsLabel = (cfg?.jobIds || []).length === 0 ? '—' : cfg.jobIds.map(id => employerLabel(jobs[id], id)).join(', ');
       const title = (cfg?.name && String(cfg.name).trim()) ? cfg.name : `${jobsLabel} · ${periodLabel}`;
       const titleEl = document.getElementById('zoomModalTitle');
       if (titleEl) titleEl.textContent = title;
@@ -1354,7 +1709,7 @@
       ensureTimerState(cfg);
       const { value } = await getCounterValue(cfg);
       const periodLabel = PERIODS.find(p => p.id === cfg.period)?.label || cfg.period;
-      const jobsLabel = (cfg.jobIds || []).length === 0 ? '—' : cfg.jobIds.map(id => jobs[id]?.name || `Работа ${id + 1}`).join(', ');
+      const jobsLabel = (cfg.jobIds || []).length === 0 ? '—' : cfg.jobIds.map(id => employerLabel(jobs[id], id)).join(', ');
       const fxInfo = getFxInfoText(cfg);
       const displayed = getDisplayedMeasurements(cfg);
       const history = displayed.map(measurementItemHtml).join('') || '<div class="measure-item">Пока нет замеров</div>';
@@ -1476,14 +1831,26 @@
     }
 
     document.getElementById('jobsList').addEventListener('click', (e) => {
-      const editIdx = e.target.dataset?.edit;
+      const card = e.target.closest('.job-card');
+      const editIdx = e.target.dataset?.edit ?? card?.dataset?.index;
       const removeIdx = e.target.dataset?.remove;
+      if (e.target.closest('.remove-btn, .edit-form, .payout-btn, .add-row-btn, .modal-btn, input, select, button, label')) {
+        // Не открываем карточку редактирования при клике по интерактивным элементам
+      } else if (editIdx !== undefined) {
+        const cardForOpen = document.querySelector(`.job-card[data-index="${editIdx}"]`);
+        if (cardForOpen && !cardForOpen.classList.contains('editing')) {
+          cardForOpen.classList.add('editing');
+          cardForOpen.querySelector('.cancel-btn').onclick = () => { cardForOpen.classList.remove('editing'); };
+          const form = cardForOpen.querySelector('.edit-form');
+          bindJobFormUi(form);
+        }
+      }
       if (editIdx !== undefined) {
-        const card = document.querySelector(`.job-card[data-index="${editIdx}"]`);
-        if (card) {
-          card.classList.add('editing');
-          card.querySelector('.cancel-btn').onclick = () => { card.classList.remove('editing'); };
-          const form = card.querySelector('.edit-form');
+        const cardForOpen = document.querySelector(`.job-card[data-index="${editIdx}"]`);
+        if (cardForOpen && e.target.closest('[data-edit]')) {
+          cardForOpen.classList.add('editing');
+          cardForOpen.querySelector('.cancel-btn').onclick = () => { cardForOpen.classList.remove('editing'); };
+          const form = cardForOpen.querySelector('.edit-form');
           bindJobFormUi(form);
         }
       }
@@ -1533,9 +1900,34 @@
         }
         return readPayoutRow(row);
       }).filter(p => p.amount > 0 && p.fromDate && p.toDate);
+      const vacationRows = Array.from(form.querySelectorAll('.vacation-row'));
+      const vacations = vacationRows.map(row => {
+        if (!row.classList.contains('collapsed')) {
+          const v = readVacationEditor(row);
+          if (v.fromDate && v.toDate) {
+            syncVacationRow(row, v);
+            row.classList.add('collapsed');
+          }
+        }
+        return readVacationRow(row);
+      }).filter(v => v.fromDate && v.toDate);
+      const overrideRows = Array.from(form.querySelectorAll('.override-row'));
+      const calendarOverrides = overrideRows.map(row => {
+        if (!row.classList.contains('collapsed')) {
+          const o = readOverrideEditor(row);
+          if (o.date) {
+            syncOverrideRow(row, o);
+            row.classList.add('collapsed');
+          }
+        }
+        return readOverrideRow(row);
+      }).filter(o => o.date);
       const job = {
         name: fd.get('name') || '',
+        employer: fd.get('employer') || '',
         startedAt: fd.get('startedAt') || '',
+        calendarCountry: String(fd.get('calendarCountry') || 'RU').toUpperCase(),
+        calendarOverrides,
         schedule: fd.get('schedule') || '5x2',
         workFrom: fd.get('workFrom') || '09:00',
         workTo: fd.get('workTo') || '17:00',
@@ -1543,6 +1935,7 @@
         lunchTo: fd.get('lunchTo') || '14:00',
         lunchEnabled: form.querySelector('[name=lunchEnabled]')?.checked !== false,
         daySchedules,
+        vacations,
         payouts,
         rate: parseFloat(String(fd.get('rate')).replace(',', '.')) || 0,
         rateUnit: fd.get('rateUnit') || 'month',
@@ -1579,6 +1972,13 @@
         const nameInput = w.querySelector(`input[data-counter-name="${saveIdx}"]`);
         const roundChk = w.querySelector(`input[data-round="${saveIdx}"]`);
         const name = String(nameInput?.value || '').trim();
+        w.querySelectorAll('input[data-fx-manual]').forEach(inp => {
+          const code = String(inp.getAttribute('data-fx-manual') || '').toUpperCase();
+          const v = parseFloat(String(inp.value || '').replace(',', '.'));
+          if (!code || code === 'RUB') return;
+          if (Number.isFinite(v) && v > 0) fxManualToRub[code] = v;
+        });
+        saveManualFx();
         counters[saveIdx] = {
           jobIds: Array.from(jobsContainer?.querySelectorAll('input[type=checkbox]:checked') ?? []).map(cb => +cb.value).filter(id => id >= 0 && id < jobs.length),
           taxDisplay: taxSelect?.value || 'net',
@@ -1596,7 +1996,7 @@
       if (delIdx !== undefined) {
         const idx = +delIdx;
         const cfg = counters[idx] || {};
-        const autoName = (cfg.jobIds || []).length === 0 ? `Виджет ${idx + 1}` : cfg.jobIds.map(id => jobs[id]?.name || `Работа ${id + 1}`).join(', ');
+        const autoName = (cfg.jobIds || []).length === 0 ? `Виджет ${idx + 1}` : cfg.jobIds.map(id => employerLabel(jobs[id], id)).join(', ');
         const title = (cfg.name && String(cfg.name).trim()) ? cfg.name : autoName;
         if (!confirm(`Удалить виджет "${title}"?`)) return;
         counters.splice(idx, 1);

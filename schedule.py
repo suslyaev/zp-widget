@@ -3,7 +3,8 @@
 """
 from datetime import date
 
-from calendar_ru import is_working_day as is_ru_working_day
+def _date_in_set(d: date, values: set[str]) -> bool:
+    return d.isoformat() in values
 
 
 def parse_time(s: str) -> tuple[int, int]:
@@ -20,7 +21,7 @@ def time_to_seconds(h: int, m: int) -> int:
     return h * 3600 + m * 60
 
 
-def is_working_day(d: date, schedule: str, started_at: date | None) -> bool:
+def is_working_day(d: date, schedule: str, started_at: date | None, calendar_data: dict | None = None) -> bool:
     """
     Является ли дата рабочим днём.
     schedule: 5x2, 2x2, 3x1, 1x1, 6x1, 24x7
@@ -33,7 +34,13 @@ def is_working_day(d: date, schedule: str, started_at: date | None) -> bool:
         return True
 
     if schedule == "5x2":
-        return is_ru_working_day(d)
+        off_dates = set((calendar_data or {}).get("offDates") or [])
+        work_dates = set((calendar_data or {}).get("workDates") or [])
+        if _date_in_set(d, work_dates):
+            return True
+        if _date_in_set(d, off_dates):
+            return False
+        return d.weekday() < 5
 
     if schedule in ("2x2", "3x1", "1x1", "6x1") and started_at:
         days_since = (d - started_at).days
@@ -49,7 +56,7 @@ def is_working_day(d: date, schedule: str, started_at: date | None) -> bool:
         if schedule == "6x1":
             return d.weekday() < 6  # пн-сб
 
-    return is_ru_working_day(d)
+    return d.weekday() < 5
 
 
 def work_seconds_per_day(work_from: str, work_to: str, lunch_from: str, lunch_to: str, lunch_enabled: bool = True) -> float:
@@ -92,12 +99,12 @@ def elapsed_in_day(h: int, m: int, s: int, work_from: str, work_to: str, lunch_f
     return work_per_day
 
 
-def working_days_in_month(year: int, month: int, schedule: str, started_at: date | None) -> int:
+def working_days_in_month(year: int, month: int, schedule: str, started_at: date | None, calendar_data: dict | None = None) -> int:
     from datetime import timedelta
     count = 0
     d = date(year, month, 1)
     while d.month == month:
-        if is_working_day(d, schedule, started_at):
+        if is_working_day(d, schedule, started_at, calendar_data):
             count += 1
         d += timedelta(days=1)
     return count
@@ -120,12 +127,13 @@ def get_day_times(wf: str, wt: str, lf: str, lt: str, le: bool, day_schedules: d
 
 def working_seconds_in_month(year: int, month: int, schedule: str, started_at: date | None,
                             work_from: str, work_to: str, lunch_from: str, lunch_to: str,
-                            lunch_enabled: bool = True, day_schedules: dict | None = None) -> float:
+                            lunch_enabled: bool = True, day_schedules: dict | None = None,
+                            calendar_data: dict | None = None) -> float:
     from datetime import timedelta
     total = 0.0
     d = date(year, month, 1)
     while d.month == month:
-        if is_working_day(d, schedule, started_at):
+        if is_working_day(d, schedule, started_at, calendar_data):
             wf, wt, lf, lt, le = get_day_times(work_from, work_to, lunch_from, lunch_to, lunch_enabled, day_schedules, d, schedule)
             total += work_seconds_per_day(wf, wt, lf, lt, le)
         d += timedelta(days=1)
@@ -135,19 +143,20 @@ def working_seconds_in_month(year: int, month: int, schedule: str, started_at: d
 def working_seconds_elapsed_in_month(year: int, month: int, day: int, hour: int, minute: int, second: int,
                                       schedule: str, started_at: date | None,
                                       work_from: str, work_to: str, lunch_from: str, lunch_to: str,
-                                      lunch_enabled: bool = True, day_schedules: dict | None = None) -> float:
+                                      lunch_enabled: bool = True, day_schedules: dict | None = None,
+                                      calendar_data: dict | None = None) -> float:
     from datetime import timedelta
     total = 0.0
     d = date(year, month, 1)
     today = date(year, month, day)
 
     while d < today:
-        if is_working_day(d, schedule, started_at):
+        if is_working_day(d, schedule, started_at, calendar_data):
             wf, wt, lf, lt, le = get_day_times(work_from, work_to, lunch_from, lunch_to, lunch_enabled, day_schedules, d, schedule)
             total += work_seconds_per_day(wf, wt, lf, lt, le)
         d += timedelta(days=1)
 
-    if not is_working_day(today, schedule, started_at):
+    if not is_working_day(today, schedule, started_at, calendar_data):
         return total
 
     wf, wt, lf, lt, le = get_day_times(work_from, work_to, lunch_from, lunch_to, lunch_enabled, day_schedules, today, schedule)
@@ -162,7 +171,8 @@ def working_seconds_elapsed_in_day(hour: int, minute: int, second: int,
 
 def working_seconds_in_week(year: int, month: int, day: int, schedule: str, started_at: date | None,
                             work_from: str, work_to: str, lunch_from: str, lunch_to: str,
-                            lunch_enabled: bool = True, day_schedules: dict | None = None) -> float:
+                            lunch_enabled: bool = True, day_schedules: dict | None = None,
+                            calendar_data: dict | None = None) -> float:
     from datetime import timedelta
     d = date(year, month, day)
     week_start = d - timedelta(days=d.weekday())
@@ -170,7 +180,7 @@ def working_seconds_in_week(year: int, month: int, day: int, schedule: str, star
     total = 0.0
     cur = week_start
     while cur <= week_end:
-        if is_working_day(cur, schedule, started_at):
+        if is_working_day(cur, schedule, started_at, calendar_data):
             wf, wt, lf, lt, le = get_day_times(work_from, work_to, lunch_from, lunch_to, lunch_enabled, day_schedules, cur, schedule)
             total += work_seconds_per_day(wf, wt, lf, lt, le)
         cur += timedelta(days=1)
@@ -180,7 +190,8 @@ def working_seconds_in_week(year: int, month: int, day: int, schedule: str, star
 def working_seconds_elapsed_in_week(year: int, month: int, day: int, hour: int, minute: int, second: int,
                                      schedule: str, started_at: date | None,
                                      work_from: str, work_to: str, lunch_from: str, lunch_to: str,
-                                     lunch_enabled: bool = True, day_schedules: dict | None = None) -> float:
+                                     lunch_enabled: bool = True, day_schedules: dict | None = None,
+                                     calendar_data: dict | None = None) -> float:
     from datetime import timedelta
     d = date(year, month, day)
     week_start = d - timedelta(days=d.weekday())
@@ -188,11 +199,11 @@ def working_seconds_elapsed_in_week(year: int, month: int, day: int, hour: int, 
     total = 0.0
     cur = week_start
     while cur < today:
-        if is_working_day(cur, schedule, started_at):
+        if is_working_day(cur, schedule, started_at, calendar_data):
             wf, wt, lf, lt, le = get_day_times(work_from, work_to, lunch_from, lunch_to, lunch_enabled, day_schedules, cur, schedule)
             total += work_seconds_per_day(wf, wt, lf, lt, le)
         cur += timedelta(days=1)
-    if is_working_day(today, schedule, started_at):
+    if is_working_day(today, schedule, started_at, calendar_data):
         wf, wt, lf, lt, le = get_day_times(work_from, work_to, lunch_from, lunch_to, lunch_enabled, day_schedules, today, schedule)
         total += elapsed_in_day(hour, minute, second, wf, wt, lf, lt, le)
     return total
@@ -200,12 +211,13 @@ def working_seconds_elapsed_in_week(year: int, month: int, day: int, hour: int, 
 
 def working_seconds_in_year(year: int, schedule: str, started_at: date | None,
                             work_from: str, work_to: str, lunch_from: str, lunch_to: str,
-                            lunch_enabled: bool = True, day_schedules: dict | None = None) -> float:
+                            lunch_enabled: bool = True, day_schedules: dict | None = None,
+                            calendar_data: dict | None = None) -> float:
     from datetime import timedelta
     total = 0.0
     d = date(year, 1, 1)
     while d.year == year:
-        if is_working_day(d, schedule, started_at):
+        if is_working_day(d, schedule, started_at, calendar_data):
             wf, wt, lf, lt, le = get_day_times(work_from, work_to, lunch_from, lunch_to, lunch_enabled, day_schedules, d, schedule)
             total += work_seconds_per_day(wf, wt, lf, lt, le)
         d += timedelta(days=1)
@@ -215,30 +227,33 @@ def working_seconds_in_year(year: int, schedule: str, started_at: date | None,
 def working_seconds_elapsed_in_year(year: int, month: int, day: int, hour: int, minute: int, second: int,
                                      schedule: str, started_at: date | None,
                                      work_from: str, work_to: str, lunch_from: str, lunch_to: str,
-                                     lunch_enabled: bool = True, day_schedules: dict | None = None) -> float:
+                                     lunch_enabled: bool = True, day_schedules: dict | None = None,
+                                     calendar_data: dict | None = None) -> float:
     total = 0.0
     for m in range(1, month):
-        total += working_seconds_in_month(year, m, schedule, started_at, work_from, work_to, lunch_from, lunch_to, lunch_enabled, day_schedules)
+        total += working_seconds_in_month(year, m, schedule, started_at, work_from, work_to, lunch_from, lunch_to, lunch_enabled, day_schedules, calendar_data)
     total += working_seconds_elapsed_in_month(year, month, day, hour, minute, second,
-                                             schedule, started_at, work_from, work_to, lunch_from, lunch_to, lunch_enabled, day_schedules)
+                                             schedule, started_at, work_from, work_to, lunch_from, lunch_to, lunch_enabled, day_schedules, calendar_data)
     return total
 
 
 def is_working_now(now_date: date, now_hour: int, now_minute: int,
                    work_from: str, work_to: str, lunch_from: str, lunch_to: str,
                    schedule: str, started_at: date | None,
-                   lunch_enabled: bool = True, day_schedules: dict | None = None) -> bool:
+                   lunch_enabled: bool = True, day_schedules: dict | None = None,
+                   calendar_data: dict | None = None) -> bool:
     return work_status_now(now_date, now_hour, now_minute,
                            work_from, work_to, lunch_from, lunch_to,
-                           schedule, started_at, lunch_enabled, day_schedules) == "working"
+                           schedule, started_at, lunch_enabled, day_schedules, calendar_data) == "working"
 
 
 def work_status_now(now_date: date, now_hour: int, now_minute: int,
                     work_from: str, work_to: str, lunch_from: str, lunch_to: str,
                     schedule: str, started_at: date | None,
-                    lunch_enabled: bool = True, day_schedules: dict | None = None) -> str:
+                    lunch_enabled: bool = True, day_schedules: dict | None = None,
+                    calendar_data: dict | None = None) -> str:
     """Возвращает 'working' | 'lunch' | 'off'."""
-    if not is_working_day(now_date, schedule, started_at):
+    if not is_working_day(now_date, schedule, started_at, calendar_data):
         return "off"
     if schedule == "24x7":
         return "working"

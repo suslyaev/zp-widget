@@ -6,6 +6,8 @@
 """
 from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
+import json
+from urllib.request import urlopen, Request
 from flask import Flask, render_template, jsonify, request
 
 MSK = ZoneInfo("Europe/Moscow")
@@ -28,6 +30,7 @@ from schedule import (
 # Дефолты для обратной совместимости
 DEFAULTS = {
     "name": "Работа",
+    "employer": "",
     "startedAt": None,
     "schedule": "5x2",
     "workFrom": "09:00",
@@ -36,11 +39,15 @@ DEFAULTS = {
     "lunchTo": "14:00",
     "lunchEnabled": True,
     "daySchedules": None,
+    "vacations": [],
     "rate": 0,
     "rateUnit": "month",
     "taxType": "none",
     "taxRate": 0.0,
     "currency": "RUB",
+    "calendarCountry": "RU",
+    "calendarOverrides": [],
+    "calendar": None,
 }
 
 TAX_MULT = {"none": 1.0, "13": 0.87, "4": 0.96, "6": 0.94, "15": 0.85}
@@ -90,8 +97,41 @@ def parse_job(data: dict) -> dict:
             "hidden": bool(p.get("hidden")),
         })
     j["payouts"] = normalized_payouts
+    vacations = j.get("vacations")
+    if not isinstance(vacations, list):
+        vacations = []
+    normalized_vacations = []
+    for v in vacations:
+        if not isinstance(v, dict):
+            continue
+        normalized_vacations.append({
+            "title": str(v.get("title") or ""),
+            "fromDate": str(v.get("fromDate") or ""),
+            "toDate": str(v.get("toDate") or ""),
+        })
+    j["vacations"] = normalized_vacations
     j["taxRate"] = float(j.get("taxRate") or 0)
     j["currency"] = str(j.get("currency") or "RUB").upper()
+    j["calendarCountry"] = str(j.get("calendarCountry") or "RU").upper()
+    overrides = j.get("calendarOverrides")
+    if not isinstance(overrides, list):
+        overrides = []
+    normalized_overrides = []
+    for o in overrides:
+        if not isinstance(o, dict):
+            continue
+        normalized_overrides.append({
+            "date": str(o.get("date") or ""),
+            "type": str(o.get("type") or "off"),
+        })
+    j["calendarOverrides"] = normalized_overrides
+    calendar = j.get("calendar")
+    if not isinstance(calendar, dict):
+        calendar = {}
+    j["calendar"] = {
+        "offDates": list(calendar.get("offDates") or []),
+        "workDates": list(calendar.get("workDates") or []),
+    }
     return j
 
 
@@ -148,14 +188,16 @@ def seconds_to_hms(total_seconds: int) -> tuple[int, int, int]:
 
 def working_seconds_between(start_dt: datetime, end_dt: datetime, schedule: str, started_at: date | None,
                             work_from: str, work_to: str, lunch_from: str, lunch_to: str,
-                            lunch_enabled: bool = True, day_schedules: dict | None = None) -> float:
+                            lunch_enabled: bool = True, day_schedules: dict | None = None,
+                            excluded_dates: set[date] | None = None,
+                            calendar_data: dict | None = None) -> float:
     if end_dt <= start_dt:
         return 0.0
     total = 0.0
     cur = start_dt.date()
     end_date = end_dt.date()
     while cur <= end_date:
-        if is_working_day(cur, schedule, started_at):
+        if is_working_day(cur, schedule, started_at, calendar_data) and (not excluded_dates or cur not in excluded_dates):
             wf, wt, lf, lt, le = get_day_times(work_from, work_to, lunch_from, lunch_to, lunch_enabled, day_schedules, cur, schedule)
             start_sec = 0
             end_sec = 24 * 3600
@@ -171,6 +213,20 @@ def working_seconds_between(start_dt: datetime, end_dt: datetime, schedule: str,
                 total += max(0.0, sec_end - sec_start)
         cur += timedelta(days=1)
     return total
+
+
+def vacation_days(job: dict) -> set[date]:
+    days: set[date] = set()
+    for v in job.get("vacations", []):
+        start = parse_iso_date(v.get("fromDate"))
+        end = parse_iso_date(v.get("toDate"))
+        if not start or not end or end < start:
+            continue
+        cur = start
+        while cur <= end:
+            days.add(cur)
+            cur += timedelta(days=1)
+    return days
 
 
 def payout_ranges(now: datetime) -> dict[str, tuple[datetime, datetime]]:
@@ -195,6 +251,7 @@ def payout_amounts(job: dict, now: datetime, started_at: date | None) -> dict[st
     le = job.get("lunchEnabled", True) not in (False, "false", 0)
     ds = job.get("daySchedules") or None
     base_sched = job.get("schedule") or "5x2"
+    calendar_data = job.get("calendar") or None
     ranges = payout_ranges(now)
     totals_net = {"day": 0.0, "week": 0.0, "month": 0.0, "year": 0.0}
     totals_gross = {"day": 0.0, "week": 0.0, "month": 0.0, "year": 0.0}
@@ -222,7 +279,7 @@ def payout_amounts(job: dict, now: datetime, started_at: date | None) -> dict[st
         earned_until = min(now, period_end)
         if earned_until <= period_start:
             continue
-        total_sec = working_seconds_between(period_start, period_end, payout_sched, started_at, wf, wt, lf, lt, le, ds)
+        total_sec = working_seconds_between(period_start, period_end, payout_sched, started_at, wf, wt, lf, lt, le, ds, None, calendar_data)
         if total_sec <= 0:
             continue
         tax_mult = tax_multiplier(payout)
@@ -234,7 +291,7 @@ def payout_amounts(job: dict, now: datetime, started_at: date | None) -> dict[st
             overlap_end = min(range_end, earned_until)
             if overlap_end <= overlap_start:
                 continue
-            overlap_sec = working_seconds_between(overlap_start, overlap_end, payout_sched, started_at, wf, wt, lf, lt, le, ds)
+            overlap_sec = working_seconds_between(overlap_start, overlap_end, payout_sched, started_at, wf, wt, lf, lt, le, ds, None, calendar_data)
             if overlap_sec <= 0:
                 continue
             ratio = overlap_sec / total_sec
@@ -264,8 +321,12 @@ def api_earned_single(job: dict, now: datetime) -> dict:
     lt = job.get("lunchTo") or "14:00"
     le = job.get("lunchEnabled", True) not in (False, "false", 0)
     ds = job.get("daySchedules") or None
+    calendar_data = job.get("calendar") or None
+    vac_days = vacation_days(job)
     sched = job.get("schedule") or "5x2"
-    work_status = work_status_now(now.date(), now.hour, now.minute, wf, wt, lf, lt, sched, started_at, le, ds)
+    work_status = work_status_now(now.date(), now.hour, now.minute, wf, wt, lf, lt, sched, started_at, le, ds, calendar_data)
+    if now.date() in vac_days and is_working_day(now.date(), sched, started_at, calendar_data):
+        work_status = "vacation"
 
     if job["rate"] <= 0:
         payout_parts = payout_amounts(job, now.replace(tzinfo=None), started_at)
@@ -283,13 +344,18 @@ def api_earned_single(job: dict, now: datetime) -> dict:
             "work_status": work_status,
         }
 
-    total_sec = working_seconds_in_month(now.year, now.month, sched, started_at, wf, wt, lf, lt, le, ds)
-    salary = to_monthly_net(job, total_sec, now)
+    total_sec_full = working_seconds_in_month(now.year, now.month, sched, started_at, wf, wt, lf, lt, le, ds, calendar_data)
+    month_start = datetime(now.year, now.month, 1, 0, 0, 0)
+    if now.month == 12:
+        month_end = datetime(now.year + 1, 1, 1, 0, 0, 0) - timedelta(seconds=1)
+    else:
+        month_end = datetime(now.year, now.month + 1, 1, 0, 0, 0) - timedelta(seconds=1)
+    total_sec = working_seconds_between(month_start, month_end, sched, started_at, wf, wt, lf, lt, le, ds, vac_days, calendar_data)
+    salary_full = to_monthly_net(job, total_sec_full, now)
+    # Отпуск уменьшает месячную "стоимость месяца", а не ускоряет счётчик.
+    salary = salary_full * (total_sec / total_sec_full) if total_sec_full > 0 else 0
 
-    elapsed_sec = working_seconds_elapsed_in_month(
-        now.year, now.month, now.day, now.hour, now.minute, now.second,
-        sched, started_at, wf, wt, lf, lt, le, ds
-    )
+    elapsed_sec = working_seconds_between(month_start, now.replace(tzinfo=None), sched, started_at, wf, wt, lf, lt, le, ds, vac_days, calendar_data)
 
     if total_sec <= 0:
         earned_month = 0
@@ -297,17 +363,20 @@ def api_earned_single(job: dict, now: datetime) -> dict:
         earned_month = salary * (elapsed_sec / total_sec)
 
     y, mo, d = now.year, now.month, now.day
-    h, mi, s = now.hour, now.minute, now.second
     today = now.date()
-    wfd, wtd, lfd, ltd, led = get_day_times(wf, wt, lf, lt, le, ds, today, sched)
-    sec_day = elapsed_in_day(h, mi, s, wfd, wtd, lfd, ltd, led)
+    day_start = datetime(y, mo, d, 0, 0, 0)
+    sec_day = working_seconds_between(day_start, now.replace(tzinfo=None), sched, started_at, wf, wt, lf, lt, le, ds, vac_days, calendar_data)
     earned_day = salary * (sec_day / total_sec) if total_sec > 0 else 0
 
-    sec_week = working_seconds_elapsed_in_week(y, mo, d, h, mi, s, sched, started_at, wf, wt, lf, lt, le, ds)
+    week_start_date = today - timedelta(days=today.weekday())
+    week_start = datetime(week_start_date.year, week_start_date.month, week_start_date.day, 0, 0, 0)
+    sec_week = working_seconds_between(week_start, now.replace(tzinfo=None), sched, started_at, wf, wt, lf, lt, le, ds, vac_days, calendar_data)
     earned_week = salary * (sec_week / total_sec) if total_sec > 0 else 0
 
-    total_year = working_seconds_in_year(y, sched, started_at, wf, wt, lf, lt, le, ds)
-    sec_year = working_seconds_elapsed_in_year(y, mo, d, h, mi, s, sched, started_at, wf, wt, lf, lt, le, ds)
+    year_start = datetime(y, 1, 1, 0, 0, 0)
+    year_end = datetime(y + 1, 1, 1, 0, 0, 0) - timedelta(seconds=1)
+    total_year = working_seconds_between(year_start, year_end, sched, started_at, wf, wt, lf, lt, le, ds, vac_days, calendar_data)
+    sec_year = working_seconds_between(year_start, now.replace(tzinfo=None), sched, started_at, wf, wt, lf, lt, le, ds, vac_days, calendar_data)
     earned_year = 12 * salary * (sec_year / total_year) if total_year > 0 else 0
 
     tax_mult = tax_multiplier(job)
@@ -339,11 +408,34 @@ def api_earned_single(job: dict, now: datetime) -> dict:
 
 
 app = Flask(__name__)
+HOLIDAY_CACHE: dict[tuple[str, int], list[str]] = {}
 
 
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/api/holidays", methods=["GET"])
+def api_holidays():
+    country = str(request.args.get("country") or "RU").upper()
+    year = int(request.args.get("year") or datetime.now(MSK).year)
+    key = (country, year)
+    if key in HOLIDAY_CACHE:
+        return jsonify({"offDates": HOLIDAY_CACHE[key], "source": "cache"})
+    try:
+        url = f"https://date.nager.at/api/v3/PublicHolidays/{year}/{country}"
+        req = Request(url, headers={"User-Agent": "zp-widget/1.0"})
+        with urlopen(req, timeout=6) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        off_dates = sorted({str(x.get("date")) for x in data if isinstance(x, dict) and x.get("date")})
+        HOLIDAY_CACHE[key] = off_dates
+        return jsonify({"offDates": off_dates, "source": "api"})
+    except Exception:
+        # Fallback-safe: если API недоступен — возвращаем пустой список,
+        # и клиент/движок используют стандартный пн-пт график + ручные overrides.
+        HOLIDAY_CACHE[key] = []
+        return jsonify({"offDates": [], "source": "fallback"})
 
 
 @app.route("/api/earned", methods=["POST"])
