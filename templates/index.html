@@ -32,6 +32,22 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+  {% if yandex_metrika_id %}
+  <script>
+    (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+    m[i].l=1*new Date();
+    for (var j = 0; j < document.scripts.length; j++) { if (document.scripts[j].src === r) { return; } }
+    k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a);
+    })(window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+
+    ym({{ yandex_metrika_id }}, "init", {
+      clickmap: true,
+      trackLinks: true,
+      accurateTrackBounce: true,
+      webvisor: true
+    });
+  </script>
+  {% endif %}
   <style>
     :root {
       --bg: #0f0f12;
@@ -93,9 +109,8 @@
     .add-btn:hover { background: var(--accent-dim); transform: translateY(-1px); }
     .jobs-section { margin-bottom: 2rem; }
     .jobs-list { display: flex; flex-direction: column; gap: 0.75rem; }
-    .add-job-card {
-      width: 100%;
-      min-height: 74px;
+    .add-job-card,
+    .add-widget-card {
       border: 1px dashed var(--accent);
       border-radius: 12px;
       background: rgba(0, 212, 170, 0.05);
@@ -103,14 +118,19 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      font-size: 1rem;
-      font-weight: 600;
       cursor: pointer;
       user-select: none;
       transition: background 0.2s, transform 0.1s;
     }
-    .add-job-card:hover { background: rgba(0, 212, 170, 0.12); transform: translateY(-1px); }
+    .add-job-card:hover,
+    .add-widget-card:hover { background: rgba(0, 212, 170, 0.12); transform: translateY(-1px); }
+    .add-job-card {
+      width: 100%;
+      min-height: 74px;
+      gap: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+    }
     .job-card {
       position: relative;
       background: var(--card);
@@ -389,26 +409,16 @@
       align-items: start;
     }
     .add-widget-card {
-      aspect-ratio: 1.5;
-      border: 1px dashed var(--accent);
-      border-radius: 12px;
-      background: rgba(0, 212, 170, 0.05);
-      color: var(--accent);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      aspect-ratio: 2;
       font-size: 2rem;
       font-weight: 300;
-      cursor: pointer;
-      user-select: none;
     }
-    .add-widget-card:hover { background: rgba(0, 212, 170, 0.12); }
     .counter-widget {
-      aspect-ratio: 1.5;
+      aspect-ratio: 2;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 1rem;
+      padding: 0.78rem;
       display: flex;
       flex-direction: column;
       position: relative;
@@ -432,8 +442,8 @@
       overflow: hidden;
     }
     .counter-widget .value.paused { color: var(--text-muted); }
-    .counter-widget .label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center; }
-    .counter-widget .label-tax { font-size: 0.65rem; color: var(--text-muted); opacity: 0.8; margin-top: 0.2rem; text-align: center; }
+    .counter-widget .label { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem; text-align: center; }
+    .counter-widget .label-tax { font-size: 0.62rem; color: var(--text-muted); opacity: 0.8; margin-top: 0.12rem; text-align: center; }
     .counter-widget .label-fx { font-size: 0.62rem; color: var(--text-muted); opacity: 0.75; margin-top: 0.15rem; text-align: center; }
     .counter-widget .config-btn {
       position: absolute;
@@ -722,6 +732,9 @@
   </style>
 </head>
 <body>
+  {% if yandex_metrika_id %}
+  <noscript><div><img src="https://mc.yandex.ru/watch/{{ yandex_metrika_id }}" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+  {% endif %}
   <header class="page-header">
     <div class="title-row">
       <h1>ZP-Widget</h1>
@@ -1579,7 +1592,7 @@
         const badge = cfg.activeTimer ? `<span class="live-badge ${cfg.activeTimer.paused ? 'paused' : 'active'}">${cfg.activeTimer.paused ? 'Пауза' : 'Таймер'}</span>` : '';
         div.innerHTML = `
           ${badge}
-          <button class="config-btn" data-config="${i}" title="Настроить">⚙</button>
+          <button class="config-btn" data-config="${i}" title="Настроить">⚙︎</button>
           <button class="expand-btn" data-expand="${i}" title="Открыть крупно">⛶</button>
           <button class="timer-btn" data-timer="${i}" title="Секундомер">▶</button>
           <button class="timer-btn share-btn" data-share="${i}" title="Поделиться">↗</button>

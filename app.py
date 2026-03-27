@@ -7,6 +7,7 @@
 from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
 import json
+import os
 from urllib.request import urlopen, Request
 from flask import Flask, render_template, jsonify, request
 
@@ -411,9 +412,19 @@ app = Flask(__name__)
 HOLIDAY_CACHE: dict[tuple[str, int], list[str]] = {}
 
 
+def parse_metrika_id(value: str | None) -> int | None:
+    try:
+        return int(str(value or "").strip())
+    except Exception:
+        return None
+
+
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template(
+        "index.html",
+        yandex_metrika_id=parse_metrika_id(os.getenv("YANDEX_METRIKA_ID")),
+    )
 
 
 @app.route("/api/holidays", methods=["GET"])
